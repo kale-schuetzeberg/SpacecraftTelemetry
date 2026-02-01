@@ -155,3 +155,12 @@ MIT License - Feel free to use this as a learning resource or reference for your
 ---
 
 **Built with a growth mindset and a desire to learn more about spacecraft operations and ground software engineering.**
+
+## Known Issues
+
+### Telemetry Graph Time Scale Mismatch
+**Issue:** When the simulator update interval is changed (e.g., `simulator.update(60)` for 1-minute steps), the frontend graphs still display "last 100 seconds" but each data point actually represents the configured time step (60 seconds in this example). This causes the X-axis labels to be misleading - "100s ago" actually means "100 minutes ago" when using 60-second steps.
+
+**Impact:** Graph time scale labels are incorrect when simulator delta time ≠ 1 second  
+**Workaround:** Keep simulator at 1Hz (`update(1.0)`) for accurate graph labels  
+**Planned Fix:** Phase 3 (or earlier) - sync graph time scale with actual telemetry timestamps
