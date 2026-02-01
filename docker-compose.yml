@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  backend:
+    # set container name
+    container_name: spacecraft-telemetry-backend
+    # build from backend directory
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # expose port 8000
+    ports:
+      - "8000:8000"
+
+
+  frontend:
+    # set container name
+    container_name: spacecraft-telemetry-frontend
+    # build from frontend directory
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    # expose port 80
+    ports:
+      - "80:80"
+    # depends on backend (hint: depends_on)
+    depends_on:
+      - backend

@@ -116,7 +116,7 @@ You should see:
 **Phase 2: Production Deployment**
 - [ ] Docker containerization (backend and frontend)
 - [ ] AWS EC2 deployment with Terraform (EC2, networking, security groups)
-- [ ] Custom domain with HTTPS (Let's Encrypt)
+- [ ] Custom domain with HTTPS (AWS Certificate Manager)
 - [ ] CI/CD pipeline with GitHub Actions
 
 ### Planned Enhancements

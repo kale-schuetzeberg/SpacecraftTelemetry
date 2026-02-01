@@ -22,10 +22,10 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Spacecraft Ground Station API", lifespan=lifespan)
 
-@app.get("/")
-async def root():
-    """System health check"""
-    return {"status": "operational"}
+@app.get("/health")
+async def health():
+    """Health check endpoint for Kubernetes liveness/readiness probes"""
+    return {"status": "ok"}
 
 @app.get("/telemetry/latest")
 async def telemetry_latest():
