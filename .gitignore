@@ -29,3 +29,7 @@ dist/
 
 # Build
 build/
+
+# Mac
+.DS_Store
+._*
