@@ -1,0 +1,34 @@
+.telemetry-card {
+  background-color: #1a1f3a;
+  border: 1px solid #2a3f5f;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.telemetry-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0, 217, 255, 0.2);
+}
+
+.card-label {
+  font-size: 14px;
+  color: #8b9dc3;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.card-value {
+  font-size: 36px;
+  font-weight: bold;
+  color: #00d9ff;
+  font-family: 'Courier New', monospace;
+}
+
+.card-unit {
+  font-size: 18px;
+  color: #8b9dc3;
+  margin-left: 6px;
+}

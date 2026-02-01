@@ -1,0 +1,19 @@
+.telemetry-graph {
+  background-color: #1a1f3a;
+  border: 1px solid #2a3f5f;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.graph-title {
+  color: #00d9ff;
+  font-size: 18px;
+  margin: 0 0 15px 0;
+  font-weight: 600;
+}
+
+/* Recharts tooltip styling */
+.recharts-tooltip-wrapper {
+  outline: none;
+}

@@ -1,0 +1,19 @@
+/* Reset browser defaults */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body - dark theme for space mission aesthetic */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #0a0e27;
+  color: #e0e0e0;
+  line-height: 1.6;
+}
+
+/* Make the root element fill the viewport */
+#root {
+  min-height: 100vh;
+}

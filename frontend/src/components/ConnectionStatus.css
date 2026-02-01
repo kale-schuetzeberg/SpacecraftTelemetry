@@ -1,0 +1,96 @@
+/* ConnectionStatus.css */
+
+.connection-status {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: #1a1f3a;
+  border: 1px solid #2a3f5f;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 14px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.status-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.connected .status-dot {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px #4caf50;
+}
+
+.disconnected .status-dot {
+  background-color: #f44336;
+  box-shadow: 0 0 8px #f44336;
+  animation: none;
+}
+
+.status-text {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.status-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid #2a3f5f;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.latency {
+  font-weight: bold;
+}
+
+.latency.good {
+  color: #4caf50;
+}
+
+.latency.ok {
+  color: #ff9800;
+}
+
+.latency.poor {
+  color: #f44336;
+}
+
+.packet-loss {
+  color: #f44336;
+  font-size: 11px;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive: move below title on tablets and phones */
+@media (max-width: 768px) {
+  .connection-status {
+    position: static;
+    margin: 0 auto 20px;
+    width: fit-content;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

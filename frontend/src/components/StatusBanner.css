@@ -1,0 +1,41 @@
+.status-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+/* Green for NOMINAL */
+.status-nominal {
+  background-color: #1a4d2e;
+  border-left: 10px solid #4caf50;
+}
+
+/* Yellow for WARNING */
+.status-warning {
+  background-color: #4d3a1a;
+  border-left: 10px solid #ff9800;
+}
+
+/* Red for CRITICAL */
+.status-critical {
+  background-color: #4d1a1a;
+  border-left: 10px solid #f44336;
+}
+
+/* Grey for OFFLINE */
+.status-offline {
+  background-color: #808080;
+  border-left: 10px solid #0a0e27;
+}
+
+.status-label {
+  font-weight: 500;
+}
+
+.mission-time {
+  font-family: 'Courier New', monospace;
+}
