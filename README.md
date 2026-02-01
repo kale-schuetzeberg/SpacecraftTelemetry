@@ -61,8 +61,8 @@ You should see:
 
 ## Tech Stack
 
-**Backend:** Python 3.13, FastAPI, WebSockets, Pydantic, Uvicorn  
-**Frontend:** React 18, TypeScript, Recharts, CSS Grid, Vite  
+- **Backend:** Python 3.13, FastAPI, WebSockets, Pydantic, Uvicorn  
+- **Frontend:** React 18, TypeScript, Recharts, CSS Grid, Vite  
 
 ## Architecture & Design Decisions
 ```
@@ -78,10 +78,10 @@ You should see:
 ```
 
 ### Key Decisions
-**WebSocket streaming:** Persistent connection with 1-2ms localhost latency (vs. HTTP polling overhead)  
-**Telemetry envelope:** Metadata wrapper with timestamps and sequence numbers for latency/packet loss monitoring  
-**Separated simulation:** Physics engine independent from API - enables easy swap to real rocket hardware  
-**Component architecture:** Single-responsibility React components with custom WebSocket hook for state management
+- **WebSocket streaming:** Persistent connection with 1-2ms localhost latency (vs. HTTP polling overhead)  
+- **Telemetry envelope:** Metadata wrapper with timestamps and sequence numbers for latency/packet loss monitoring  
+- **Separated simulation:** Physics engine independent from API - enables easy swap to real rocket hardware  
+- **Component architecture:** Single-responsibility React components with custom WebSocket hook for state management
 
 ## Screenshots
 
