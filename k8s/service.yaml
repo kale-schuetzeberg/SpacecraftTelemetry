@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spacecraft-telemetry-service
+  namespace: spacecraft-telemetry
+spec:
+  selector:
+    app: spacecraft-telemetry
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

@@ -114,7 +114,8 @@ You should see:
 ### Current Work
 
 **Phase 2: Production Deployment**
-- [ ] Docker containerization (backend and frontend)
+- [x] Docker containerization (backend and frontend)
+- [x] Configure Kubernetes deployment
 - [ ] AWS EC2 deployment with Terraform (EC2, networking, security groups)
 - [ ] Custom domain with HTTPS (AWS Certificate Manager)
 - [ ] CI/CD pipeline with GitHub Actions

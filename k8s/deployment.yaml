@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spacecraft-telemetry-deployment
+  namespace: spacecraft-telemetry
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spacecraft-telemetry
+  template:
+    metadata:
+      labels:
+        app: spacecraft-telemetry
+    spec:
+      containers:
+        - name: spacecraft-telemetry-backend
+          image: spacecraft-telemetry-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: spacecraft-telemetry-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

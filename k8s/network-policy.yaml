@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: spacecraft-telemetry-network-policy
+  namespace: spacecraft-telemetry
+spec:
+  podSelector:
+    matchLabels:
+      app: spacecraft-telemetry
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+      - protocol: TCP
+        port: 8000

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spacecraft-telemetry-config
+  namespace: spacecraft-telemetry
+data:
+  environment: prod
+  port: "8000"
+  log_level: INFO
