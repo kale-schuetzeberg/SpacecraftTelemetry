@@ -71,10 +71,10 @@ This document outlines the AWS production architecture for the Spacecraft Teleme
 │  │   ┌─────────────────────────────────────────────────────────────────────────┐     │  │
 │  │   │                    Public Subnets (10.0.1.0/24, 10.0.2.0/24)            │     │  │
 │  │   │                                                                         │     │  │
-│  │   │    ┌──────────────┐    ┌──────────────┐                                 │     │  │
-│  │   │    │  NAT Gateway │    │  NAT Gateway │   (High Availability)           │     │  │
-│  │   │    │    (AZ-a)    │    │    (AZ-b)    │                                 │     │  │
-│  │   │    └──────────────┘    └──────────────┘                                 │     │  │
+│  │   │              ┌──────────────┐                                           │     │  │
+│  │   │              │  NAT Gateway │   (Single, cost optimized)                │     │  │
+│  │   │              │    (AZ-a)    │                                           │     │  │
+│  │   │              └──────────────┘                                           │     │  │
 │  │   └─────────────────────────────────────────────────────────────────────────┘     │  │
 │  │                                                                                   │  │
 │  │   ┌─────────────────────────────────────────────────────────────────────────┐     │  │
@@ -85,7 +85,7 @@ This document outlines the AWS production architecture for the Spacecraft Teleme
 │  │   │   │                                                                  │  │     │  │
 │  │   │   │  ┌─────────────────────────────────────────────────────────────┐ │  │     │  │
 │  │   │   │  │              EC2 Worker Node Group                          │ │  │     │  │
-│  │   │   │  │              (t3.medium, 2-4 nodes)                         │ │  │     │  │
+│  │   │   │  │        (t3.small, prod: 1-2 nodes / dev: 1-2 nodes)         │ │  │     │  │
 │  │   │   │  │                                                             │ │  │     │  │
 │  │   │   │  │   ┌─────────────────┐      ┌─────────────────┐              │ │  │     │  │
 │  │   │   │  │   │  Backend Pod    │      │  Backend Pod    │              │ │  │     │  │
@@ -179,12 +179,13 @@ API REQUESTS (Future):
 
 ### 3.1 Compute
 
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| EKS Cluster | Kubernetes 1.29 | Container orchestration |
-| EC2 Worker Nodes | t3.medium (2 vCPU, 4GB RAM) | Run Kubernetes pods |
-| Node Group | Min: 2, Max: 4, Desired: 2 | Auto-scaling capacity |
-| Backend Pods | 2 replicas (HPA: 2-6) | FastAPI application |
+| Component | Specification              | Purpose |
+|-----------|----------------------------|---------|
+| EKS Cluster | Kubernetes 1.35 | Container orchestration |
+| EC2 Worker Nodes | t3.small (2 vCPU, 2GB RAM) | Run Kubernetes pods |
+| Node Group (prod) | Min: 1, Max: 2, Desired: 1 | Auto-scaling capacity |
+| Node Group (dev) | Min: 1, Max: 2, Desired: 1 | Auto-scaling capacity |
+| Backend Pods | 2 replicas (HPA: 2-6)      | FastAPI application |
 
 ### 3.2 Networking
 
@@ -195,7 +196,7 @@ API REQUESTS (Future):
 | Private Subnets | 10.0.10.0/24, 10.0.11.0/24 | EKS worker nodes |
 | Database Subnets | 10.0.20.0/24, 10.0.21.0/24 | RDS (Phase 3) |
 | ALB | Application Load Balancer | HTTPS/WSS termination |
-| NAT Gateway | 2x (HA across AZs) | Outbound internet for private subnets |
+| NAT Gateway | 1x (cost optimized) | Outbound internet for private subnets |
 
 ### 3.3 Storage & Database
 
@@ -358,7 +359,7 @@ API REQUESTS (Future):
 │   ├── configmap.yaml
 │   ├── hpa.yaml
 │   └── network-policy.yaml
-└── Local testing with kubectl though docker desktop
+└── Local testing with kubectl through docker desktop
 ```
 
 **Deliverables:**
@@ -437,26 +438,26 @@ API REQUESTS (Future):
 | Service | Specification | Est. Monthly Cost |
 |---------|--------------|-------------------|
 | EKS Cluster | Control plane | $72 |
-| EC2 (EKS Nodes) | 2x t3.medium | $60 |
-| NAT Gateway | 2x (HA) | $65 |
+| EC2 (EKS Nodes) | 2x t3.small | $30 |
+| NAT Gateway | 1x | $32 |
 | ALB | Application LB | $22 |
 | S3 | < 1GB static | $1 |
 | CloudFront | < 100GB transfer | $10 |
 | ECR | < 10GB images | $1 |
 | CloudWatch | Logs & metrics | $15 |
 | Route53 | Hosted zone + queries | $1 |
-| **Total** | | **~$247/month** |
+| **Total** | | **~$184/month** |
 
 ### 7.2 Cost Optimization Options
 
 | Option | Savings | Trade-off |
 |--------|---------|-----------|
-| Single NAT Gateway | ~$32/month | Reduced HA |
 | Spot Instances for nodes | ~30-60% on EC2 | Possible interruptions |
 | Reserved Instances (1yr) | ~30% on EC2 | Commitment |
-| Smaller node type (t3.small) | ~$20/month | Less headroom |
 
-**Development/Demo Configuration:** ~$150/month (single NAT, spot instances)
+> **Note:** Single NAT gateway and t3.small nodes are already applied as the baseline configuration.
+
+**Development/Demo Configuration:** ~$110/month (spin up on demand, destroy when not demoing)
 
 ---
 
