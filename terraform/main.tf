@@ -15,6 +15,13 @@ module "vpc" {
   environment       = var.environment
 }
 
+module "iam" {
+  source = "./modules/iam"
+
+  project_name = var.project_name
+  environment  = var.environment
+}
+
 module "eks" {
   source = "./modules/eks"
 
@@ -25,6 +32,8 @@ module "eks" {
   eks_node_desired       = var.eks_node_desired
   cluster_name           = local.cluster_name
   subnet_ids             = module.vpc.private_subnet_ids
+  cluster_role_arn       = module.iam.cluster_role_arn
+  node_role_arn          = module.iam.node_role_arn
   project_name           = var.project_name
   environment            = var.environment
 }
