@@ -1,8 +1,3 @@
-locals {
-  # EKS
-  cluster_name = "${var.project_name}-${var.environment}"
-}
-
 module "vpc" {
   source = "./modules/vpc"
 
@@ -22,17 +17,16 @@ module "iam" {
 module "eks" {
   source = "./modules/eks"
 
-  eks_kubernetes_version = var.eks_kubernetes_version
-  eks_node_instance_type = var.eks_node_instance_type
-  eks_node_min           = var.eks_node_min
-  eks_node_max           = var.eks_node_max
-  eks_node_desired       = var.eks_node_desired
-  cluster_name           = local.cluster_name
-  subnet_ids             = module.vpc.private_subnet_ids
-  cluster_role_arn       = module.iam.cluster_role_arn
-  node_role_arn          = module.iam.node_role_arn
-  project_name           = var.project_name
-  environment            = var.environment
+  kubernetes_version = var.eks_kubernetes_version
+  node_instance_type = var.eks_node_instance_type
+  node_min           = var.eks_node_min
+  node_max           = var.eks_node_max
+  node_desired       = var.eks_node_desired
+  private_subnet_ids = module.vpc.private_subnet_ids
+  cluster_role_arn   = module.iam.cluster_role_arn
+  node_role_arn      = module.iam.node_role_arn
+  project_name       = var.project_name
+  environment        = var.environment
 }
 
 module "ecr" {
