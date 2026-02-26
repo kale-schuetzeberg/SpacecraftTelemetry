@@ -4,8 +4,8 @@ data "aws_route53_zone" "main" {
 }
 
 resource "aws_acm_certificate" "main" {
-  domain_name               = "spacecraft.${var.domain_name}"
-  subject_alternative_names = ["spacecraft-api.${var.domain_name}"]
+  domain_name               = var.frontend_subdomain
+  subject_alternative_names = [var.backend_subdomain]
   validation_method         = "DNS"
   lifecycle {
     create_before_destroy = true

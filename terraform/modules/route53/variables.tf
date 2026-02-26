@@ -1,15 +1,15 @@
 variable "domain_name" {
-  description = "Root domain name for ACM certificate"
+  description = "Root domain name for Route 53 hosted zone lookup"
   type        = string
 }
 
 variable "frontend_subdomain" {
-  description = "Fully-qualified frontend domain name for ACM certificate"
+  description = "Fully-qualified frontend domain name used as the DNS alias record"
   type        = string
 }
 
-variable "backend_subdomain" {
-  description = "Fully-qualified backend domain name for ACM certificate"
+variable "cloudfront_domain_name" {
+  description = "CloudFront distribution URL for the frontend"
   type        = string
 }
 
