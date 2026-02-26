@@ -116,8 +116,8 @@ You should see:
 **Phase 2: Production Deployment**
 - [x] Docker containerization (backend and frontend)
 - [x] Configure Kubernetes deployment
-- [ ] AWS EC2 deployment with Terraform (EC2, networking, security groups)
-- [ ] Custom domain with HTTPS (AWS Certificate Manager)
+- [x] AWS infrastructure with Terraform (VPC, EKS, ECR, S3, CloudFront, IAM)
+- [ ] Custom domain with HTTPS (Route53, ACM)
 - [ ] CI/CD pipeline with GitHub Actions
 
 ### Planned Enhancements

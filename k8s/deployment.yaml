@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: spacecraft-telemetry-backend
-          image: spacecraft-telemetry-backend:latest
-          imagePullPolicy: IfNotPresent
+          image: 571252911393.dkr.ecr.us-east-1.amazonaws.com/spacecraft-telemetry-dev:v0.0.1
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           envFrom:

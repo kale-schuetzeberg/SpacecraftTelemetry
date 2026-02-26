@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import type {Telemetry, TelemetryEnvelope} from '../types/telemetry';
 
-const WEBSOCKET_URL = 'ws://localhost:8000/ws/telemetry';
+const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL ?? 'ws://localhost:8000/ws/telemetry';
 const RECONNECT_INTERVAL = 3000;
 const TELEMETRY_HISTORY_SIZE = 100;
 
