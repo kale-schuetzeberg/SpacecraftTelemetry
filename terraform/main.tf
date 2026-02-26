@@ -1,9 +1,6 @@
 locals {
-  # CORE
+  # EKS
   cluster_name = "${var.project_name}-${var.environment}"
-
-  # ECR
-  ecr_repository_name = "${var.project_name}-${var.environment}"
 }
 
 module "vpc" {
@@ -41,9 +38,8 @@ module "eks" {
 module "ecr" {
   source = "./modules/ecr"
 
-  ecr_repository_name = local.ecr_repository_name
-  project_name        = var.project_name
-  environment         = var.environment
+  project_name = var.project_name
+  environment  = var.environment
 }
 
 module "s3_cloudfront" {

@@ -17,6 +17,9 @@ data "aws_iam_policy_document" "cluster_trust" {
 resource "aws_iam_role" "cluster" {
   name               = "${var.project_name}-${var.environment}-eks-cluster-role"
   assume_role_policy = data.aws_iam_policy_document.cluster_trust.json
+  tags = {
+    Name = "${var.project_name}-${var.environment}-eks-cluster-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "cluster_policy" {
@@ -43,6 +46,9 @@ data "aws_iam_policy_document" "node_trust" {
 resource "aws_iam_role" "node" {
   name               = "${var.project_name}-${var.environment}-eks-node-role"
   assume_role_policy = data.aws_iam_policy_document.node_trust.json
+  tags = {
+    Name = "${var.project_name}-${var.environment}-eks-node-role"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "node_policy" {
