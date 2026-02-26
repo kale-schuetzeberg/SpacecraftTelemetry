@@ -12,7 +12,7 @@ resource "aws_eks_cluster" "main" {
   }
 
   tags = {
-    Name = "${local.cluster_name}-cluster"
+    Name = "${local.cluster_name}"
   }
 }
 
