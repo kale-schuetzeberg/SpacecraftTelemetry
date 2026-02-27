@@ -1,4 +1,5 @@
-name: Setup Environment
+name: Setup
+
 on:
   workflow_call:
     inputs:
@@ -11,79 +12,48 @@ on:
       teardown:
         required: true
         type: boolean
+    outputs:
+      IMAGE_TAG:
+        description: "Docker image tag"
+        value: ${{ needs.setup_job.outputs.IMAGE_TAG }}
+      K8S_NAMESPACE:
+        description: "K8s namespace"
+        value: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
+      S3_PREFIX:
+        description: "S3 prefix for frontend"
+        value: ${{ needs.setup_job.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET:
+        description: "Frontend S3 bucket"
+        value: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
+      DOMAIN:
+        description: "Base domain"
+        value: ${{ needs.setup_job.outputs.DOMAIN }}
+      TF_VARS_FILE:
+        description: "Terraform vars file path"
+        value: ${{ needs.setup_job.outputs.TF_VARS_FILE }}
+      TEARDOWN:
+        description: "Whether this is a teardown run"
+        value: ${{ needs.setup_job.outputs.TEARDOWN }}
 
 jobs:
-  setup:
+  setup_job:
     runs-on: ubuntu-latest
     outputs:
-      ENV: ${{ steps.set_env.outputs.ENV }}
-      K8S_NAMESPACE: ${{ steps.set_env.outputs.K8S_NAMESPACE }}
-      TF_VARS_FILE: ${{ steps.set_env.outputs.TF_VARS_FILE }}
-      IMAGE_TAG: ${{ steps.set_env.outputs.IMAGE_TAG }}
-      S3_PREFIX: ${{ steps.set_env.outputs.S3_PREFIX }}
-      CLOUDFRONT_DIST_ID: ${{ steps.set_env.outputs.CLOUDFRONT_DIST_ID }}
-      DOMAIN: ${{ steps.set_env.outputs.DOMAIN }}
-      FRONTEND_BUCKET: ${{ steps.set_env.outputs.FRONTEND_BUCKET }}
-      TEARDOWN: ${{ steps.set_env.outputs.TEARDOWN }}
-
+      IMAGE_TAG: ${{ steps.set.outputs.IMAGE_TAG }}
+      K8S_NAMESPACE: ${{ steps.set.outputs.K8S_NAMESPACE }}
+      S3_PREFIX: ${{ steps.set.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ steps.set.outputs.FRONTEND_BUCKET }}
+      DOMAIN: ${{ steps.set.outputs.DOMAIN }}
+      TF_VARS_FILE: ${{ steps.set.outputs.TF_VARS_FILE }}
+      TEARDOWN: ${{ steps.set.outputs.TEARDOWN }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Terraform setup
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.7
-
-      - name: Set Environment Variables
-        id: set_env
+      - name: Set Variables
+        id: set
         run: |
-          ENV="${{ inputs.environment }}"
-          TEARDOWN="${{ inputs.teardown }}"
-          BRANCH="${{ inputs.branch }}"
-
-          if [ "$ENV" == "feature" ] && [ -z "$BRANCH" ]; then
-            echo "Feature branch requires branch input"
-            exit 1
-          fi
-
-          BRANCH_SAFE="${BRANCH//\//-}"
-
-          if [ "$ENV" == "feature" ]; then
-            echo "K8S_NAMESPACE=feature-$BRANCH_SAFE" >> $GITHUB_ENV
-            echo "TF_VARS_FILE=environments/dev/terraform.tfvars" >> $GITHUB_ENV
-            echo "S3_PREFIX=$BRANCH_SAFE/" >> $GITHUB_ENV
-            echo "IMAGE_TAG=feature-$BRANCH_SAFE-${GITHUB_SHA}" >> $GITHUB_ENV
-            echo "CLOUDFRONT_DIST_ID=${{ secrets.CLOUDFRONT_DIST_ID_DEV }}" >> $GITHUB_ENV
-            echo "DOMAIN=$BRANCH_SAFE.dev.spacecraft-api.nodenavi.com" >> $GITHUB_ENV
-            echo "FRONTEND_BUCKET=${{ env.FRONTEND_BUCKET_DEV }}" >> $GITHUB_ENV
-          elif [ "$ENV" == "dev" ]; then
-            echo "K8S_NAMESPACE=dev" >> $GITHUB_ENV
-            echo "TF_VARS_FILE=environments/dev/terraform.tfvars" >> $GITHUB_ENV
-            echo "S3_PREFIX=" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
-            echo "CLOUDFRONT_DIST_ID=${{ secrets.CLOUDFRONT_DIST_ID_DEV }}" >> $GITHUB_ENV
-            echo "DOMAIN=dev.spacecraft-api.nodenavi.com" >> $GITHUB_ENV
-            echo "FRONTEND_BUCKET=${{ env.FRONTEND_BUCKET_DEV }}" >> $GITHUB_ENV
-          else
-            echo "K8S_NAMESPACE=prod" >> $GITHUB_ENV
-            echo "TF_VARS_FILE=environments/prod/terraform.tfvars" >> $GITHUB_ENV
-            echo "S3_PREFIX=" >> $GITHUB_ENV
-            echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
-            echo "CLOUDFRONT_DIST_ID=${{ secrets.CLOUDFRONT_DIST_ID_PROD }}" >> $GITHUB_ENV
-            echo "DOMAIN=spacecraft-api.nodenavi.com" >> $GITHUB_ENV
-            echo "FRONTEND_BUCKET=${{ env.FRONTEND_BUCKET_MAIN }}" >> $GITHUB_ENV
-          fi
-
-          echo "TEARDOWN=$TEARDOWN" >> $GITHUB_ENV
-
-          for var in ENV K8S_NAMESPACE TF_VARS_FILE IMAGE_TAG S3_PREFIX CLOUDFRONT_DIST_ID DOMAIN FRONTEND_BUCKET TEARDOWN; do
-            echo "$var=${!var}" >> $GITHUB_OUTPUT
-          done
+          echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_OUTPUT
+          echo "K8S_NAMESPACE=${{ inputs.branch || inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "S3_PREFIX=${{ inputs.branch || inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "FRONTEND_BUCKET=my-frontend-bucket" >> $GITHUB_OUTPUT
+          echo "DOMAIN=spacecraft-api.nodenavi.com" >> $GITHUB_OUTPUT
+          echo "TF_VARS_FILE=terraform/${{ inputs.environment }}.tfvars" >> $GITHUB_OUTPUT
+          echo "TEARDOWN=${{ inputs.teardown }}" >> $GITHUB_OUTPUT

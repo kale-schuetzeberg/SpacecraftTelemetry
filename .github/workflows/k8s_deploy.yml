@@ -9,23 +9,24 @@ on:
     outputs:
       ALB_HOSTNAME:
         description: "ALB hostname after deploy"
-        value: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
+        value: ${{ needs.deploy.outputs.ALB_HOSTNAME }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Apply K8s Manifests
+        id: get_alb
         run: |
           kubectl apply -f k8s/
-          # Wait for ALB hostname to be assigned
           ALB=""
           while [ -z "$ALB" ]; do
             sleep 5
             ALB=$(kubectl get ingress my-ingress -n ${{ inputs.K8S_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           done
           echo "ALB_HOSTNAME=$ALB" >> $GITHUB_OUTPUT
-        id: get_alb
