@@ -1,35 +1,26 @@
 ---
-name: Manual CI/CD Deployments
+name: CI/CD Workflow
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       environment:
-        description: 'Select environment to deploy'
         required: true
-        default: 'dev'
-        type: choice
-        options:
-          - feature
-          - dev
-          - prod
+        type: string
       branch:
-        description: 'Branch to deploy (required for feature deployments)'
         required: false
-        default: ''
+        type: string
       teardown:
-        description: 'Teardown instead of deploy?'
-        required: false
-        default: false
+        required: true
         type: boolean
 
 jobs:
   setup_job:
     uses: ./.github/workflows/setup.yml
     with:
-      environment: ${{ github.event.inputs.environment }}
-      branch: ${{ github.event.inputs.branch }}
-      teardown: ${{ github.event.inputs.teardown }}
+      environment: ${{ inputs.environment }}
+      branch: ${{ inputs.branch }}
+      teardown: ${{ inputs.teardown }}
 
   build_push_job:
     needs: setup_job
