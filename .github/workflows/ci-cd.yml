@@ -19,7 +19,7 @@ on:
       teardown:
         description: 'Teardown instead of deploy?'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
