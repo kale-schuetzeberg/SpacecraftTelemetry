@@ -24,7 +24,7 @@ on:
 
 jobs:
   setup:
-    uses: ./.github/workflows/modules/setup.yml
+    uses: ./.github/workflows/setup.yml
     with:
       environment: ${{ github.event.inputs.environment }}
       branch: ${{ github.event.inputs.branch }}
@@ -32,21 +32,21 @@ jobs:
 
   build_push:
     needs: setup
-    uses: ./.github/workflows/modules/build_push.yml
+    uses: ./.github/workflows/build_push.yml
     with:
       IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
 
   k8s_deploy:
     if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
     needs: build_push
-    uses: ./.github/workflows/modules/k8s_deploy.yml
+    uses: ./.github/workflows/k8s_deploy.yml
     with:
       K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
 
   dns_frontend:
     if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
     needs: k8s_deploy
-    uses: ./.github/workflows/modules/dns_frontend.yml
+    uses: ./.github/workflows/dns_frontend.yml
     with:
       DOMAIN: ${{ needs.setup.outputs.DOMAIN }}
       S3_PREFIX: ${{ needs.setup.outputs.S3_PREFIX }}
@@ -57,7 +57,7 @@ jobs:
   teardown:
     if: ${{ needs.setup.outputs.TEARDOWN == 'true' }}
     needs: setup
-    uses: ./.github/workflows/modules/teardown.yml
+    uses: ./.github/workflows/teardown.yml
     with:
       K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
       IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
