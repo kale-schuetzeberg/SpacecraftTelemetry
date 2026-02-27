@@ -24,6 +24,11 @@ variable "environment" {
   }
 }
 
+variable "domain_name" {
+  description = "Root domain name for Route 53 hosted zone and ACM certificate"
+  type        = string
+}
+
 # =============================================================================
 # NETWORKING
 # =============================================================================

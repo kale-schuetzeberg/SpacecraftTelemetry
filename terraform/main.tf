@@ -1,3 +1,8 @@
+locals {
+  frontend_subdomain = var.environment == "prod" ? "spacecraft.${var.domain_name}" : "${var.environment}.spacecraft.${var.domain_name}"
+  backend_subdomain  = var.environment == "prod" ? "spacecraft-api.${var.domain_name}" : "${var.environment}.spacecraft-api.${var.domain_name}"
+}
+
 module "vpc" {
   source = "./modules/vpc"
 
@@ -36,10 +41,34 @@ module "ecr" {
   environment  = var.environment
 }
 
+module "acm" {
+  source = "./modules/acm"
+
+  domain_name        = var.domain_name
+  frontend_subdomain = local.frontend_subdomain
+  backend_subdomain  = local.backend_subdomain
+  project_name       = var.project_name
+  environment        = var.environment
+}
+
 module "s3_cloudfront" {
   source = "./modules/s3-cloudfront"
 
   frontend_bucket_name = var.frontend_bucket_name
+  certificate_arn      = module.acm.certificate_arn
+  frontend_subdomain   = local.frontend_subdomain
   project_name         = var.project_name
   environment          = var.environment
+}
+
+# spacecraft-api.nodenavi.com -> ALB record is managed by the CI/CD pipeline
+# (ALB is created by the Kubernetes Load Balancer Controller, not Terraform)
+module "route53" {
+  source = "./modules/route53"
+
+  domain_name            = var.domain_name
+  frontend_subdomain     = local.frontend_subdomain
+  cloudfront_domain_name = module.s3_cloudfront.distribution_url
+  project_name           = var.project_name
+  environment            = var.environment
 }

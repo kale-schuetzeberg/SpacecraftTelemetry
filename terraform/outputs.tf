@@ -59,11 +59,29 @@ output "ecr_repository_url" {
 # =============================================================================
 
 output "cloudfront_distribution_url" {
-  description = "CloudFront distribution URL for the frontend"
+  description = "Raw CloudFront hostname (use frontend_url for the public-facing URL)"
   value       = module.s3_cloudfront.distribution_url
 }
 
 output "frontend_bucket_name" {
   description = "S3 bucket name for React static assets served via CloudFront"
   value       = module.s3_cloudfront.bucket_name
+}
+
+# =============================================================================
+# ACM
+# =============================================================================
+
+output "acm_certificate_arn" {
+  description = "ACM certificate ARN covering the frontend and backend subdomains — used by CloudFront and ALB"
+  value       = module.acm.certificate_arn
+}
+
+# =============================================================================
+# Route53
+# =============================================================================
+
+output "frontend_url" {
+  description = "Public frontend URL"
+  value       = module.route53.frontend_url
 }

@@ -2,7 +2,7 @@ resource "aws_s3_bucket" "main" {
   bucket = var.frontend_bucket_name
 
   tags = {
-    Name = "${var.project_name}-${var.environment}"
+    Name = "${var.project_name}-${var.environment}-frontend"
   }
 }
 
@@ -16,7 +16,7 @@ resource "aws_s3_bucket_public_access_block" "main" {
 }
 
 resource "aws_cloudfront_origin_access_control" "main" {
-  name                              = "${var.project_name}-${var.environment}"
+  name                              = "${var.project_name}-${var.environment}-oac"
   description                       = "OAC for CloudFront to access S3 frontend bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
@@ -26,6 +26,7 @@ resource "aws_cloudfront_origin_access_control" "main" {
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
   default_root_object = "index.html"
+  aliases             = [var.frontend_subdomain]
 
   origin {
     domain_name              = aws_s3_bucket.main.bucket_regional_domain_name
@@ -38,7 +39,6 @@ resource "aws_cloudfront_distribution" "main" {
     viewer_protocol_policy = "redirect-to-https"
     allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
-
     forwarded_values {
       query_string = false
       cookies {
@@ -54,7 +54,9 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = var.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {

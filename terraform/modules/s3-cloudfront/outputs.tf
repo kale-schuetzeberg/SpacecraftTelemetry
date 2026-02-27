@@ -5,5 +5,5 @@ output "distribution_url" {
 
 output "bucket_name" {
   description = "S3 bucket name for React static assets served via CloudFront"
-  value       = aws_s3_bucket.main.name
+  value       = aws_s3_bucket.main.bucket
 }
