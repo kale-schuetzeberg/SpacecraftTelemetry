@@ -1,0 +1,23 @@
+name: Build & Push
+on:
+  workflow_call:
+    inputs:
+      IMAGE_TAG:
+        required: true
+        type: string
+
+jobs:
+  build_push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Docker backend
+        run: |
+          docker build -t ${{ inputs.IMAGE_TAG }} ./backend
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ env.ECR_REPO }}
+          docker push ${{ inputs.IMAGE_TAG }}
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build

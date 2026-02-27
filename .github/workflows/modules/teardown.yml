@@ -1,0 +1,59 @@
+name: Teardown
+on:
+  workflow_call:
+    inputs:
+      K8S_NAMESPACE:
+        required: true
+        type: string
+      IMAGE_TAG:
+        required: true
+        type: string
+      S3_PREFIX:
+        required: true
+        type: string
+      FRONTEND_BUCKET:
+        required: true
+        type: string
+      DOMAIN:
+        required: true
+        type: string
+      TF_VARS_FILE:
+        required: true
+        type: string
+
+jobs:
+  teardown:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete K8s namespace
+        run: kubectl delete namespace ${{ inputs.K8S_NAMESPACE }} --ignore-not-found || true
+
+      - name: Empty S3 prefix
+        run: |
+          while aws s3 ls "s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}" | grep -q '.'; do
+            aws s3 rm "s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}" --recursive
+          done
+
+      - name: Delete ECR image
+        run: aws ecr batch-delete-image --repository-name backend --image-ids imageTag=${{ inputs.IMAGE_TAG }} || true
+
+      - name: Delete Route53 record
+        run: |
+          if aws route53 list-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_HOSTED_ZONE_ID }} --query "ResourceRecordSets[?Name=='${{ inputs.DOMAIN }}.']" --output json | grep -q Name; then
+            aws route53 change-resource-record-sets \
+              --hosted-zone-id ${{ secrets.ROUTE53_HOSTED_ZONE_ID }} \
+              --change-batch "{
+                \"Changes\": [{
+                  \"Action\": \"DELETE\",
+                  \"ResourceRecordSet\": {
+                    \"Name\": \"${{ inputs.DOMAIN }}\",
+                    \"Type\": \"CNAME\",
+                    \"TTL\": 60,
+                    \"ResourceRecords\": [{\"Value\": \"${{ inputs.DOMAIN }}\"}]
+                  }
+                }]
+              }" || true
+          fi
+
+      - name: Terraform destroy
+        run: terraform destroy -var-file=${{ inputs.TF_VARS_FILE }} -auto-approve || true

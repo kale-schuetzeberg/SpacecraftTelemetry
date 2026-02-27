@@ -1,0 +1,44 @@
+name: DNS & Frontend
+on:
+  workflow_call:
+    inputs:
+      DOMAIN:
+        required: true
+        type: string
+      S3_PREFIX:
+        required: true
+        type: string
+      FRONTEND_BUCKET:
+        required: true
+        type: string
+      CLOUDFRONT_DIST_ID:
+        required: true
+        type: string
+      ALB_HOSTNAME:
+        required: true
+        type: string
+
+jobs:
+  dns_frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Route53
+        run: |
+          aws route53 change-resource-record-sets \
+            --hosted-zone-id ${{ secrets.ROUTE53_HOSTED_ZONE_ID }} \
+            --change-batch "{
+              \"Changes\": [{
+                \"Action\": \"UPSERT\",
+                \"ResourceRecordSet\": {
+                  \"Name\": \"${{ inputs.DOMAIN }}\",
+                  \"Type\": \"CNAME\",
+                  \"TTL\": 60,
+                  \"ResourceRecords\": [{\"Value\": \"${{ inputs.ALB_HOSTNAME }}\"}]
+                }
+              }]
+            }"
+
+      - name: Deploy frontend
+        run: |
+          aws s3 sync frontend/dist/ s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}
+          aws cloudfront create-invalidation --distribution-id ${{ inputs.CLOUDFRONT_DIST_ID }} --paths "/${{ inputs.S3_PREFIX }}*"

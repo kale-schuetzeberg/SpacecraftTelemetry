@@ -117,7 +117,7 @@ You should see:
 - [x] Docker containerization (backend and frontend)
 - [x] Configure Kubernetes deployment
 - [x] AWS infrastructure with Terraform (VPC, EKS, ECR, S3, CloudFront, IAM)
-- [x] Custom domain with HTTPS (Route53 + ACM — spacecraft.nodenavi.com)
+- [x] Custom domain with HTTPS (Route53 + ACM - spacecraft.nodenavi.com)
 - [ ] CI/CD pipeline with GitHub Actions
 
 ### Planned Enhancements

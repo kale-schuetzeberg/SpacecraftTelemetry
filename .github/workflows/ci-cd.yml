@@ -1,0 +1,69 @@
+name: Manual CI/CD Deployments
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Select environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - feature
+          - dev
+          - prod
+      branch:
+        description: 'Branch to deploy (required for feature deployments)'
+        required: false
+        default: ''
+      teardown:
+        description: 'Teardown instead of deploy?'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  setup:
+    uses: ./.github/workflows/modules/setup.yml
+    with:
+      environment: ${{ github.event.inputs.environment }}
+      branch: ${{ github.event.inputs.branch }}
+      teardown: ${{ github.event.inputs.teardown }}
+
+  build_push:
+    needs: setup
+    uses: ./.github/workflows/modules/build_push.yml
+    with:
+      IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
+
+  k8s_deploy:
+    if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
+    needs: build_push
+    uses: ./.github/workflows/modules/k8s_deploy.yml
+    with:
+      K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
+    outputs:
+      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
+
+  dns_frontend:
+    if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
+    needs: k8s_deploy
+    uses: ./.github/workflows/modules/dns_frontend.yml
+    with:
+      DOMAIN: ${{ needs.setup.outputs.DOMAIN }}
+      S3_PREFIX: ${{ needs.setup.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ needs.setup.outputs.FRONTEND_BUCKET }}
+      CLOUDFRONT_DIST_ID: ${{ needs.setup.outputs.CLOUDFRONT_DIST_ID }}
+      ALB_HOSTNAME: ${{ needs.k8s_deploy.outputs.ALB_HOSTNAME }}
+
+  teardown:
+    if: ${{ needs.setup.outputs.TEARDOWN == 'true' }}
+    needs: setup
+    uses: ./.github/workflows/modules/teardown.yml
+    with:
+      K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
+      IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
+      S3_PREFIX: ${{ needs.setup.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ needs.setup.outputs.FRONTEND_BUCKET }}
+      DOMAIN: ${{ needs.setup.outputs.DOMAIN }}
+      TF_VARS_FILE: ${{ needs.setup.outputs.TF_VARS_FILE }}

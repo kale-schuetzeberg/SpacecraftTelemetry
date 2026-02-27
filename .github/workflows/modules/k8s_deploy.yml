@@ -1,0 +1,33 @@
+name: Kubernetes Deploy
+on:
+  workflow_call:
+    inputs:
+      K8S_NAMESPACE:
+        required: true
+        type: string
+
+jobs:
+  k8s_deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
+
+    steps:
+      - name: Setup kubeconfig
+        run: aws eks update-kubeconfig --name spacecraft-eks
+
+      - name: Apply K8s manifests
+        run: kubectl apply -n ${{ inputs.K8S_NAMESPACE }} -f k8s/
+
+      - id: get_alb
+        name: Wait for ALB
+        run: |
+          HOSTNAME=""
+          for i in {1..30}; do
+            HOSTNAME=$(kubectl get ingress -n ${{ inputs.K8S_NAMESPACE }} spacecraft-api-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            if [ ! -z "$HOSTNAME" ]; then
+              break
+            fi
+            sleep 10
+          done
+          echo "ALB_HOSTNAME=$HOSTNAME" >> $GITHUB_OUTPUT
