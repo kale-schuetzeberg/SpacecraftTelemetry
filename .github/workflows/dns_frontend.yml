@@ -38,12 +38,17 @@ jobs:
                   "Name": "'"${{ inputs.DOMAIN }}"'",
                   "Type": "CNAME",
                   "TTL": 60,
-                  "ResourceRecords": [{"Value": "'"${{ inputs.ALB_HOSTNAME }}"'"}]
+                  "ResourceRecords": [{
+                    "Value": "'"${{ inputs.ALB_HOSTNAME }}"'"
+                  }]
                 }
               }]
             }'
 
       - name: Sync frontend to S3
         run: |
-          aws s3 sync frontend/dist/ s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}/
-          aws cloudfront create-invalidation --distribution-id ${{ inputs.CLOUDFRONT_DIST_ID }} --paths "/*"
+          aws s3 sync frontend/dist/ s3://${{ inputs.FRONTEND_BUCKET }}/\
+            ${{ inputs.S3_PREFIX }}/
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ inputs.CLOUDFRONT_DIST_ID }} \
+            --paths "/*"

@@ -25,9 +25,14 @@ jobs:
       - name: Build backend Docker image
         run: |
           docker build -t my-backend:${{ inputs.IMAGE_TAG }} ./backend
-          docker tag my-backend:${{ inputs.IMAGE_TAG }} ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPO }}:${{ inputs.IMAGE_TAG }}
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPO }}:${{ inputs.IMAGE_TAG }}
+          docker tag my-backend:${{ inputs.IMAGE_TAG }} \
+            ${{ secrets.ECR_REGISTRY }}/ \
+            ${{ secrets.ECR_REPO }}:${{ inputs.IMAGE_TAG }}
+          aws ecr get-login-password --region us-east-1 \
+            | docker login --username AWS --password-stdin \
+            ${{ secrets.ECR_REGISTRY }}
+          docker push ${{ secrets.ECR_REGISTRY }}/\
+            ${{ secrets.ECR_REPO }}:${{ inputs.IMAGE_TAG }}
 
       - name: Build frontend
         run: |

@@ -52,9 +52,12 @@ jobs:
         id: set
         run: |
           echo "IMAGE_TAG=$(date +%s)" >> $GITHUB_OUTPUT
-          echo "K8S_NAMESPACE=${{ inputs.branch || inputs.environment }}" >> $GITHUB_OUTPUT
-          echo "S3_PREFIX=${{ inputs.branch || inputs.environment }}" >> $GITHUB_OUTPUT
+          echo "K8S_NAMESPACE=${{ inputs.branch || inputs.environment }}" \
+            >> $GITHUB_OUTPUT
+          echo "S3_PREFIX=${{ inputs.branch || inputs.environment }}" \
+            >> $GITHUB_OUTPUT
           echo "FRONTEND_BUCKET=my-frontend-bucket" >> $GITHUB_OUTPUT
           echo "DOMAIN=spacecraft-api.nodenavi.com" >> $GITHUB_OUTPUT
-          echo "TF_VARS_FILE=terraform/${{ inputs.environment }}.tfvars" >> $GITHUB_OUTPUT
+          echo "TF_VARS_FILE=terraform/${{ inputs.environment }}.tfvars" \
+            >> $GITHUB_OUTPUT
           echo "TEARDOWN=${{ inputs.teardown }}" >> $GITHUB_OUTPUT

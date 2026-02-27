@@ -28,6 +28,8 @@ jobs:
           ALB=""
           while [ -z "$ALB" ]; do
             sleep 5
-            ALB=$(kubectl get ingress my-ingress -n ${{ inputs.K8S_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+            ALB=$(kubectl get ingress my-ingress \
+              -n ${{ inputs.K8S_NAMESPACE }} \
+              -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           done
           echo "ALB_HOSTNAME=$ALB" >> $GITHUB_OUTPUT
