@@ -23,45 +23,45 @@ on:
         type: boolean
 
 jobs:
-  setup:
+  setup_job:
     uses: ./.github/workflows/setup.yml
     with:
       environment: ${{ github.event.inputs.environment }}
       branch: ${{ github.event.inputs.branch }}
       teardown: ${{ github.event.inputs.teardown }}
 
-  build_push:
-    needs: setup
+  build_push_job:
+    needs: setup_job
     uses: ./.github/workflows/build_push.yml
     with:
-      IMAGE_TAG: ${{ jobs.setup.outputs.IMAGE_TAG }}
+      IMAGE_TAG: ${{ needs.setup_job.outputs.IMAGE_TAG }}
 
-  k8s_deploy:
-    if: ${{ jobs.setup.outputs.TEARDOWN == 'false' }}
-    needs: build_push
+  k8s_deploy_job:
+    if: ${{ needs.setup_job.outputs.TEARDOWN == 'false' }}
+    needs: build_push_job
     uses: ./.github/workflows/k8s_deploy.yml
     with:
-      K8S_NAMESPACE: ${{ jobs.setup.outputs.K8S_NAMESPACE }}
+      K8S_NAMESPACE: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
 
-  dns_frontend:
-    if: ${{ jobs.setup.outputs.TEARDOWN == 'false' }}
-    needs: k8s_deploy
+  dns_frontend_job:
+    if: ${{ needs.setup_job.outputs.TEARDOWN == 'false' }}
+    needs: k8s_deploy_job
     uses: ./.github/workflows/dns_frontend.yml
     with:
-      DOMAIN: ${{ jobs.setup.outputs.DOMAIN }}
-      S3_PREFIX: ${{ jobs.setup.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ jobs.setup.outputs.FRONTEND_BUCKET }}
-      CLOUDFRONT_DIST_ID: ${{ jobs.setup.outputs.CLOUDFRONT_DIST_ID }}
-      ALB_HOSTNAME: ${{ jobs.k8s_deploy.outputs.ALB_HOSTNAME }}
+      DOMAIN: ${{ needs.setup_job.outputs.DOMAIN }}
+      S3_PREFIX: ${{ needs.setup_job.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
+      CLOUDFRONT_DIST_ID: ${{ needs.setup_job.outputs.CLOUDFRONT_DIST_ID }}
+      ALB_HOSTNAME: ${{ needs.k8s_deploy_job.outputs.ALB_HOSTNAME }}
 
-  teardown:
-    if: ${{ jobs.setup.outputs.TEARDOWN == 'true' }}
-    needs: setup
+  teardown_job:
+    if: ${{ needs.setup_job.outputs.TEARDOWN == 'true' }}
+    needs: setup_job
     uses: ./.github/workflows/teardown.yml
     with:
-      K8S_NAMESPACE: ${{ jobs.setup.outputs.K8S_NAMESPACE }}
-      IMAGE_TAG: ${{ jobs.setup.outputs.IMAGE_TAG }}
-      S3_PREFIX: ${{ jobs.setup.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ jobs.setup.outputs.FRONTEND_BUCKET }}
-      DOMAIN: ${{ jobs.setup.outputs.DOMAIN }}
-      TF_VARS_FILE: ${{ jobs.setup.outputs.TF_VARS_FILE }}
+      K8S_NAMESPACE: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
+      IMAGE_TAG: ${{ needs.setup_job.outputs.IMAGE_TAG }}
+      S3_PREFIX: ${{ needs.setup_job.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
+      DOMAIN: ${{ needs.setup_job.outputs.DOMAIN }}
+      TF_VARS_FILE: ${{ needs.setup_job.outputs.TF_VARS_FILE }}
