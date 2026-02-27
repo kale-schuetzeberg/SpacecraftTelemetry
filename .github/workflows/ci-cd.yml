@@ -1,7 +1,6 @@
 ---
 name: CI/CD Workflow
-
-on:
+'on':
   workflow_call:
     inputs:
       environment:
@@ -13,47 +12,42 @@ on:
       teardown:
         required: true
         type: boolean
-
 jobs:
   setup_job:
     uses: ./.github/workflows/setup.yml
     with:
-      environment: ${{ inputs.environment }}
-      branch: ${{ inputs.branch }}
-      teardown: ${{ inputs.teardown }}
-
+      environment: '${{ inputs.environment }}'
+      branch: '${{ inputs.branch }}'
+      teardown: '${{ inputs.teardown }}'
   build_push_job:
     needs: setup_job
     uses: ./.github/workflows/build_push.yml
     with:
-      IMAGE_TAG: ${{ needs.setup_job.outputs.IMAGE_TAG }}
-
+      IMAGE_TAG: '${{ needs.setup_job.outputs.IMAGE_TAG }}'
   k8s_deploy_job:
-    if: ${{ needs.setup_job.outputs.TEARDOWN == 'false' }}
+    if: '${{ needs.setup_job.outputs.TEARDOWN == ''false'' }}'
     needs: build_push_job
     uses: ./.github/workflows/k8s_deploy.yml
     with:
-      K8S_NAMESPACE: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
-
+      K8S_NAMESPACE: '${{ needs.setup_job.outputs.K8S_NAMESPACE }}'
   dns_frontend_job:
-    if: ${{ needs.setup_job.outputs.TEARDOWN == 'false' }}
+    if: '${{ needs.setup_job.outputs.TEARDOWN == ''false'' }}'
     needs: k8s_deploy_job
     uses: ./.github/workflows/dns_frontend.yml
     with:
-      DOMAIN: ${{ needs.setup_job.outputs.DOMAIN }}
-      S3_PREFIX: ${{ needs.setup_job.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
-      CLOUDFRONT_DIST_ID: ${{ needs.setup_job.outputs.CLOUDFRONT_DIST_ID }}
-      ALB_HOSTNAME: ${{ needs.k8s_deploy_job.outputs.ALB_HOSTNAME }}
-
+      DOMAIN: '${{ needs.setup_job.outputs.DOMAIN }}'
+      S3_PREFIX: '${{ needs.setup_job.outputs.S3_PREFIX }}'
+      FRONTEND_BUCKET: '${{ needs.setup_job.outputs.FRONTEND_BUCKET }}'
+      CLOUDFRONT_DIST_ID: '${{ needs.setup_job.outputs.CLOUDFRONT_DIST_ID }}'
+      ALB_HOSTNAME: '${{ needs.k8s_deploy_job.outputs.ALB_HOSTNAME }}'
   teardown_job:
-    if: ${{ needs.setup_job.outputs.TEARDOWN == 'true' }}
+    if: '${{ needs.setup_job.outputs.TEARDOWN == ''true'' }}'
     needs: setup_job
     uses: ./.github/workflows/teardown.yml
     with:
-      K8S_NAMESPACE: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
-      IMAGE_TAG: ${{ needs.setup_job.outputs.IMAGE_TAG }}
-      S3_PREFIX: ${{ needs.setup_job.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
-      DOMAIN: ${{ needs.setup_job.outputs.DOMAIN }}
-      TF_VARS_FILE: ${{ needs.setup_job.outputs.TF_VARS_FILE }}
+      K8S_NAMESPACE: '${{ needs.setup_job.outputs.K8S_NAMESPACE }}'
+      IMAGE_TAG: '${{ needs.setup_job.outputs.IMAGE_TAG }}'
+      S3_PREFIX: '${{ needs.setup_job.outputs.S3_PREFIX }}'
+      FRONTEND_BUCKET: '${{ needs.setup_job.outputs.FRONTEND_BUCKET }}'
+      DOMAIN: '${{ needs.setup_job.outputs.DOMAIN }}'
+      TF_VARS_FILE: '${{ needs.setup_job.outputs.TF_VARS_FILE }}'

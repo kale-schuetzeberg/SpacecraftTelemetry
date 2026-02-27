@@ -1,7 +1,6 @@
 ---
 name: K8s Deploy
-
-on:
+'on':
   workflow_call:
     inputs:
       K8S_NAMESPACE:
@@ -9,18 +8,16 @@ on:
         type: string
     outputs:
       ALB_HOSTNAME:
-        description: "ALB hostname after deploy"
-        value: ${{ jobs.deploy.outputs.ALB_HOSTNAME }}
-
+        description: ALB hostname after deploy
+        value: '${{ jobs.deploy.outputs.ALB_HOSTNAME }}'
 jobs:
   deploy:
     runs-on: ubuntu-latest
     outputs:
-      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
+      ALB_HOSTNAME: '${{ steps.get_alb.outputs.ALB_HOSTNAME }}'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Apply K8s manifests
         id: get_alb
         run: |

@@ -1,7 +1,6 @@
 ---
 name: Setup
-
-on:
+'on':
   workflow_call:
     inputs:
       environment:
@@ -15,38 +14,37 @@ on:
         type: boolean
     outputs:
       IMAGE_TAG:
-        description: "Docker image tag"
-        value: ${{ jobs.setup_job.outputs.IMAGE_TAG }}
+        description: Docker image tag
+        value: '${{ jobs.setup_job.outputs.IMAGE_TAG }}'
       K8S_NAMESPACE:
-        description: "K8s namespace"
-        value: ${{ jobs.setup_job.outputs.K8S_NAMESPACE }}
+        description: K8s namespace
+        value: '${{ jobs.setup_job.outputs.K8S_NAMESPACE }}'
       S3_PREFIX:
-        description: "S3 prefix for frontend"
-        value: ${{ jobs.setup_job.outputs.S3_PREFIX }}
+        description: S3 prefix for frontend
+        value: '${{ jobs.setup_job.outputs.S3_PREFIX }}'
       FRONTEND_BUCKET:
-        description: "Frontend S3 bucket"
-        value: ${{ jobs.setup_job.outputs.FRONTEND_BUCKET }}
+        description: Frontend S3 bucket
+        value: '${{ jobs.setup_job.outputs.FRONTEND_BUCKET }}'
       DOMAIN:
-        description: "Base domain"
-        value: ${{ jobs.setup_job.outputs.DOMAIN }}
+        description: Base domain
+        value: '${{ jobs.setup_job.outputs.DOMAIN }}'
       TF_VARS_FILE:
-        description: "Terraform vars file path"
-        value: ${{ jobs.setup_job.outputs.TF_VARS_FILE }}
+        description: Terraform vars file path
+        value: '${{ jobs.setup_job.outputs.TF_VARS_FILE }}'
       TEARDOWN:
-        description: "Whether this is a teardown run"
-        value: ${{ jobs.setup_job.outputs.TEARDOWN }}
-
+        description: Whether this is a teardown run
+        value: '${{ jobs.setup_job.outputs.TEARDOWN }}'
 jobs:
   setup_job:
     runs-on: ubuntu-latest
     outputs:
-      IMAGE_TAG: ${{ steps.set.outputs.IMAGE_TAG }}
-      K8S_NAMESPACE: ${{ steps.set.outputs.K8S_NAMESPACE }}
-      S3_PREFIX: ${{ steps.set.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ steps.set.outputs.FRONTEND_BUCKET }}
-      DOMAIN: ${{ steps.set.outputs.DOMAIN }}
-      TF_VARS_FILE: ${{ steps.set.outputs.TF_VARS_FILE }}
-      TEARDOWN: ${{ steps.set.outputs.TEARDOWN }}
+      IMAGE_TAG: '${{ steps.set.outputs.IMAGE_TAG }}'
+      K8S_NAMESPACE: '${{ steps.set.outputs.K8S_NAMESPACE }}'
+      S3_PREFIX: '${{ steps.set.outputs.S3_PREFIX }}'
+      FRONTEND_BUCKET: '${{ steps.set.outputs.FRONTEND_BUCKET }}'
+      DOMAIN: '${{ steps.set.outputs.DOMAIN }}'
+      TF_VARS_FILE: '${{ steps.set.outputs.TF_VARS_FILE }}'
+      TEARDOWN: '${{ steps.set.outputs.TEARDOWN }}'
     steps:
       - name: Set Variables
         id: set

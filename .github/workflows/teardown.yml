@@ -1,7 +1,6 @@
 ---
 name: Teardown
-
-on:
+'on':
   workflow_call:
     inputs:
       K8S_NAMESPACE:
@@ -22,30 +21,25 @@ on:
       TF_VARS_FILE:
         required: true
         type: string
-
 jobs:
   teardown_job:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Delete K8s resources
         run: |
           kubectl delete -f k8s/ -n ${{ inputs.K8S_NAMESPACE }} \
             --ignore-not-found
-
       - name: Empty S3 bucket
         run: |
           aws s3 rm s3://${{ inputs.FRONTEND_BUCKET }}/\
               ${{ inputs.S3_PREFIX }}/ --recursive || true
-
       - name: Delete ECR images
         run: |
           aws ecr batch-delete-image \
             --repository-name ${{ secrets.ECR_REPO }} \
             --image-ids imageTag=${{ inputs.IMAGE_TAG }} || true
-
       - name: Terraform destroy
         run: |
           terraform init -backend-config="bucket=my-tf-backend"

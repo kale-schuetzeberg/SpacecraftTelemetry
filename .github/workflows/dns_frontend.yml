@@ -1,7 +1,6 @@
 ---
 name: DNS & Frontend Deploy
-
-on:
+'on':
   workflow_call:
     inputs:
       DOMAIN:
@@ -19,14 +18,12 @@ on:
       ALB_HOSTNAME:
         required: true
         type: string
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
       - name: Update Route53 CNAME
         run: |
           aws route53 change-resource-record-sets \
@@ -44,7 +41,6 @@ jobs:
                 }
               }]
             }'
-
       - name: Sync frontend to S3
         run: |
           aws s3 sync frontend/dist/ s3://${{ inputs.FRONTEND_BUCKET }}/\
