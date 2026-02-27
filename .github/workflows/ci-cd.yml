@@ -19,7 +19,7 @@ on:
       teardown:
         description: 'Teardown instead of deploy?'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 jobs:
@@ -42,8 +42,6 @@ jobs:
     uses: ./.github/workflows/modules/k8s_deploy.yml
     with:
       K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
-    outputs:
-      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
 
   dns_frontend:
     if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}

@@ -1,33 +1,31 @@
-name: Kubernetes Deploy
+name: K8s Deploy
+
 on:
   workflow_call:
     inputs:
       K8S_NAMESPACE:
         required: true
         type: string
+    outputs:
+      ALB_HOSTNAME:
+        description: "ALB hostname after deploy"
+        value: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
 
 jobs:
-  k8s_deploy:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      ALB_HOSTNAME: ${{ steps.get_alb.outputs.ALB_HOSTNAME }}
-
     steps:
-      - name: Setup kubeconfig
-        run: aws eks update-kubeconfig --name spacecraft-eks
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Apply K8s manifests
-        run: kubectl apply -n ${{ inputs.K8S_NAMESPACE }} -f k8s/
-
-      - id: get_alb
-        name: Wait for ALB
+      - name: Apply K8s Manifests
         run: |
-          HOSTNAME=""
-          for i in {1..30}; do
-            HOSTNAME=$(kubectl get ingress -n ${{ inputs.K8S_NAMESPACE }} spacecraft-api-ingress -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-            if [ ! -z "$HOSTNAME" ]; then
-              break
-            fi
-            sleep 10
+          kubectl apply -f k8s/
+          # Wait for ALB hostname to be assigned
+          ALB=""
+          while [ -z "$ALB" ]; do
+            sleep 5
+            ALB=$(kubectl get ingress my-ingress -n ${{ inputs.K8S_NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           done
-          echo "ALB_HOSTNAME=$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "ALB_HOSTNAME=$ALB" >> $GITHUB_OUTPUT
+        id: get_alb
