@@ -19,7 +19,7 @@ on:
       teardown:
         description: 'Teardown instead of deploy?'
         required: false
-        default: false
+        default: 'false'
         type: boolean
 
 jobs:
@@ -34,34 +34,34 @@ jobs:
     needs: setup
     uses: ./.github/workflows/build_push.yml
     with:
-      IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
+      IMAGE_TAG: ${{ jobs.setup.outputs.IMAGE_TAG }}
 
   k8s_deploy:
-    if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
+    if: ${{ jobs.setup.outputs.TEARDOWN == 'false' }}
     needs: build_push
     uses: ./.github/workflows/k8s_deploy.yml
     with:
-      K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
+      K8S_NAMESPACE: ${{ jobs.setup.outputs.K8S_NAMESPACE }}
 
   dns_frontend:
-    if: ${{ needs.setup.outputs.TEARDOWN == 'false' }}
+    if: ${{ jobs.setup.outputs.TEARDOWN == 'false' }}
     needs: k8s_deploy
     uses: ./.github/workflows/dns_frontend.yml
     with:
-      DOMAIN: ${{ needs.setup.outputs.DOMAIN }}
-      S3_PREFIX: ${{ needs.setup.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ needs.setup.outputs.FRONTEND_BUCKET }}
-      CLOUDFRONT_DIST_ID: ${{ needs.setup.outputs.CLOUDFRONT_DIST_ID }}
-      ALB_HOSTNAME: ${{ needs.k8s_deploy.outputs.ALB_HOSTNAME }}
+      DOMAIN: ${{ jobs.setup.outputs.DOMAIN }}
+      S3_PREFIX: ${{ jobs.setup.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ jobs.setup.outputs.FRONTEND_BUCKET }}
+      CLOUDFRONT_DIST_ID: ${{ jobs.setup.outputs.CLOUDFRONT_DIST_ID }}
+      ALB_HOSTNAME: ${{ jobs.k8s_deploy.outputs.ALB_HOSTNAME }}
 
   teardown:
-    if: ${{ needs.setup.outputs.TEARDOWN == 'true' }}
+    if: ${{ jobs.setup.outputs.TEARDOWN == 'true' }}
     needs: setup
     uses: ./.github/workflows/teardown.yml
     with:
-      K8S_NAMESPACE: ${{ needs.setup.outputs.K8S_NAMESPACE }}
-      IMAGE_TAG: ${{ needs.setup.outputs.IMAGE_TAG }}
-      S3_PREFIX: ${{ needs.setup.outputs.S3_PREFIX }}
-      FRONTEND_BUCKET: ${{ needs.setup.outputs.FRONTEND_BUCKET }}
-      DOMAIN: ${{ needs.setup.outputs.DOMAIN }}
-      TF_VARS_FILE: ${{ needs.setup.outputs.TF_VARS_FILE }}
+      K8S_NAMESPACE: ${{ jobs.setup.outputs.K8S_NAMESPACE }}
+      IMAGE_TAG: ${{ jobs.setup.outputs.IMAGE_TAG }}
+      S3_PREFIX: ${{ jobs.setup.outputs.S3_PREFIX }}
+      FRONTEND_BUCKET: ${{ jobs.setup.outputs.FRONTEND_BUCKET }}
+      DOMAIN: ${{ jobs.setup.outputs.DOMAIN }}
+      TF_VARS_FILE: ${{ jobs.setup.outputs.TF_VARS_FILE }}

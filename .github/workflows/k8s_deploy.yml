@@ -9,7 +9,7 @@ on:
     outputs:
       ALB_HOSTNAME:
         description: "ALB hostname after deploy"
-        value: ${{ needs.deploy.outputs.ALB_HOSTNAME }}
+        value: ${{ jobs.deploy.outputs.ALB_HOSTNAME }}
 
 jobs:
   deploy:
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Apply K8s Manifests
+      - name: Apply K8s manifests
         id: get_alb
         run: |
           kubectl apply -f k8s/

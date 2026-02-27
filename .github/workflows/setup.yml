@@ -15,25 +15,25 @@ on:
     outputs:
       IMAGE_TAG:
         description: "Docker image tag"
-        value: ${{ needs.setup_job.outputs.IMAGE_TAG }}
+        value: ${{ jobs.setup_job.outputs.IMAGE_TAG }}
       K8S_NAMESPACE:
         description: "K8s namespace"
-        value: ${{ needs.setup_job.outputs.K8S_NAMESPACE }}
+        value: ${{ jobs.setup_job.outputs.K8S_NAMESPACE }}
       S3_PREFIX:
         description: "S3 prefix for frontend"
-        value: ${{ needs.setup_job.outputs.S3_PREFIX }}
+        value: ${{ jobs.setup_job.outputs.S3_PREFIX }}
       FRONTEND_BUCKET:
         description: "Frontend S3 bucket"
-        value: ${{ needs.setup_job.outputs.FRONTEND_BUCKET }}
+        value: ${{ jobs.setup_job.outputs.FRONTEND_BUCKET }}
       DOMAIN:
         description: "Base domain"
-        value: ${{ needs.setup_job.outputs.DOMAIN }}
+        value: ${{ jobs.setup_job.outputs.DOMAIN }}
       TF_VARS_FILE:
         description: "Terraform vars file path"
-        value: ${{ needs.setup_job.outputs.TF_VARS_FILE }}
+        value: ${{ jobs.setup_job.outputs.TF_VARS_FILE }}
       TEARDOWN:
         description: "Whether this is a teardown run"
-        value: ${{ needs.setup_job.outputs.TEARDOWN }}
+        value: ${{ jobs.setup_job.outputs.TEARDOWN }}
 
 jobs:
   setup_job:

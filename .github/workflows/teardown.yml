@@ -1,4 +1,5 @@
 name: Teardown
+
 on:
   workflow_call:
     inputs:
@@ -22,38 +23,25 @@ on:
         type: string
 
 jobs:
-  teardown:
+  teardown_job:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete K8s namespace
-        run: kubectl delete namespace ${{ inputs.K8S_NAMESPACE }} --ignore-not-found || true
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - name: Empty S3 prefix
+      - name: Delete K8s resources
         run: |
-          while aws s3 ls "s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}" | grep -q '.'; do
-            aws s3 rm "s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}" --recursive
-          done
+          kubectl delete -f k8s/ -n ${{ inputs.K8S_NAMESPACE }} --ignore-not-found
 
-      - name: Delete ECR image
-        run: aws ecr batch-delete-image --repository-name backend --image-ids imageTag=${{ inputs.IMAGE_TAG }} || true
-
-      - name: Delete Route53 record
+      - name: Empty S3 bucket
         run: |
-          if aws route53 list-resource-record-sets --hosted-zone-id ${{ secrets.ROUTE53_HOSTED_ZONE_ID }} --query "ResourceRecordSets[?Name=='${{ inputs.DOMAIN }}.']" --output json | grep -q Name; then
-            aws route53 change-resource-record-sets \
-              --hosted-zone-id ${{ secrets.ROUTE53_HOSTED_ZONE_ID }} \
-              --change-batch "{
-                \"Changes\": [{
-                  \"Action\": \"DELETE\",
-                  \"ResourceRecordSet\": {
-                    \"Name\": \"${{ inputs.DOMAIN }}\",
-                    \"Type\": \"CNAME\",
-                    \"TTL\": 60,
-                    \"ResourceRecords\": [{\"Value\": \"${{ inputs.DOMAIN }}\"}]
-                  }
-                }]
-              }" || true
-          fi
+          aws s3 rm s3://${{ inputs.FRONTEND_BUCKET }}/${{ inputs.S3_PREFIX }}/ --recursive || true
+
+      - name: Delete ECR images
+        run: |
+          aws ecr batch-delete-image --repository-name ${{ secrets.ECR_REPO }} --image-ids imageTag=${{ inputs.IMAGE_TAG }} || true
 
       - name: Terraform destroy
-        run: terraform destroy -var-file=${{ inputs.TF_VARS_FILE }} -auto-approve || true
+        run: |
+          terraform init -backend-config="bucket=my-tf-backend"
+          terraform destroy -auto-approve -var-file=${{ inputs.TF_VARS_FILE }}
