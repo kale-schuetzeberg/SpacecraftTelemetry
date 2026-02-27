@@ -1,0 +1,7 @@
+# Creates an isolated "folder/namespace" for all your resources.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spacecraft-telemetry
+  labels:
+    app: spacecraft-telemetry

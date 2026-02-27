@@ -114,15 +114,17 @@ You should see:
 ### Current Work
 
 **Phase 2: Production Deployment**
-- [ ] Docker containerization (backend and frontend)
-- [ ] AWS EC2 deployment
-- [ ] Custom domain with HTTPS (Let's Encrypt)
+- [x] Docker containerization (backend and frontend)
+- [x] Configure Kubernetes deployment
+- [x] AWS infrastructure with Terraform (VPC, EKS, ECR, S3, CloudFront, IAM)
+- [x] Custom domain with HTTPS (Route53 + ACM — spacecraft.nodenavi.com)
 - [ ] CI/CD pipeline with GitHub Actions
 
 ### Planned Enhancements
 
 **Phase 3: Data Persistence & Replay**
-- [ ] PostgreSQL time-series database (TimescaleDB)
+- [ ] Redis for shared simulation state (fix multi-pod divergence)
+- [ ] PostgreSQL time-series database (TimescaleDB)w
 - [ ] Historical telemetry storage and query API
 - [ ] Production database deployment
 - [ ] Mission replay mode (playback past telemetry)
@@ -157,6 +159,13 @@ MIT License - Feel free to use this as a learning resource or reference for your
 **Built with a growth mindset and a desire to learn more about spacecraft operations and ground software engineering.**
 
 ## Known Issues
+
+### Multi-Pod Simulation State Divergence
+**Issue:** The spacecraft simulation runs in-memory inside each backend pod. With multiple replicas, each pod maintains its own independent simulation state. The ALB load balances WebSocket connections across pods, so reconnections may land on a different pod with diverged telemetry values (different orbit position, battery level, etc.).
+
+**Impact:** Telemetry values can appear to jump when a WebSocket reconnects to a different pod
+**Workaround:** Run a single replica
+**Planned Fix:** Phase 3 — move simulation state to Redis so all pods share a single source of truth
 
 ### Telemetry Graph Time Scale Mismatch
 **Issue:** When the simulator update interval is changed (e.g., `simulator.update(60)` for 1-minute steps), the frontend graphs still display "last 100 seconds" but each data point actually represents the configured time step (60 seconds in this example). This causes the X-axis labels to be misleading - "100s ago" actually means "100 minutes ago" when using 60-second steps.
