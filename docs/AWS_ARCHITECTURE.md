@@ -5,9 +5,9 @@
 | Field | Value |
 |-------|-------|
 | Project | Spacecraft Telemetry Ground Station |
-| Version | 1.0 |
+| Version | 1.1 |
 | Author | Kale Schuetzeberg |
-| Last Updated | 2026-02-01 |
+| Last Updated | 2026-02-26 |
 | Status | Draft |
 
 ---
@@ -40,7 +40,7 @@ This document outlines the AWS production architecture for the Spacecraft Teleme
 │                                      AWS CLOUD                                          │
 │  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                               Route 53 (DNS)                                      │  │
-│  │                        spacecraft-telemetry.yourdomain.com                        │  │
+│  │              spacecraft.nodenavi.com / spacecraft-api.nodenavi.com                │  │
 │  └───────────────────────────────────────┬───────────────────────────────────────────┘  │
 │                                          │                                              │
 │                    ┌─────────────────────┴─────────────────────┐                        │
@@ -145,7 +145,8 @@ STATIC ASSETS (React App):
 │ Browser│────▶│ Route53 │────▶│ CloudFront │────▶│   S3   │
 │        │◀────│         │◀────│  (cached)  │◀────│        │
 └────────┘     └─────────┘     └────────────┘     └────────┘
-                                    │
+     spacecraft.nodenavi.com        │
+   (dev.spacecraft.nodenavi.com)    │
                               Cache HIT: ~10ms
                               Cache MISS: ~50ms
 
@@ -155,9 +156,13 @@ WEBSOCKET TELEMETRY STREAM:
 │ Browser│────▶│ Route53 │────▶│   ALB   │────▶│   EKS   │────▶│  FastAPI    │
 │   JS   │◀────│         │◀────│ (wss://)│◀────│ Service │◀────│  WebSocket  │
 └────────┘     └─────────┘     └─────────┘     └─────────┘     └─────────────┘
-    │                                                                 │
-    │                        Persistent Connection                    │
+  spacecraft-api.nodenavi.com            │                Persistent Connection
+  (dev.spacecraft-api.nodenavi.com)      │
     │◀────────────────────── Telemetry @ 1Hz ─────────────────────────│
+
+NOTE: spacecraft-api Route53 record is managed by the CI/CD pipeline,
+not Terraform. The ALB is provisioned by the Kubernetes Load Balancer
+Controller and does not exist at terraform apply time.
 
 
 API REQUESTS (Future):
@@ -389,10 +394,12 @@ API REQUESTS (Future):
 ```
 
 **Deliverables:**
-- [ ] Terraform modules for each component
-- [ ] Environment-specific configurations
-- [ ] Remote state configuration
-- [ ] Terraform documentation
+- [x] Terraform modules for each component (vpc, iam, eks, ecr, s3-cloudfront, acm, route53)
+- [x] Environment-specific configurations (dev/prod tfvars)
+- [x] Remote state configuration (S3 backend)
+- [x] Custom domain with HTTPS (spacecraft.nodenavi.com / spacecraft-api.nodenavi.com)
+- [x] ACM certificates with DNS validation
+- [x] Environment-aware subdomain logic (dev.spacecraft.* / spacecraft.*)
 
 ### Phase 2D: CI/CD Pipeline
 
@@ -582,6 +589,9 @@ SpacecraftTelemetry/
 | SSL Certificates | Let's Encrypt, ACM | ACM | Free, auto-renewal, native AWS integration |
 | CI/CD | Jenkins, GitLab CI, GitHub Actions | GitHub Actions | Already using GitHub, good AWS integration |
 | IaC | CloudFormation, Terraform, Pulumi | Terraform | Industry standard, multi-cloud skills |
+| Backend DNS | Terraform-managed, Pipeline-managed | Pipeline-managed | ALB is provisioned by k8s Load Balancer Controller after terraform apply — pipeline owns the correct ordering |
+| Subdomain structure | base domain, suffix per env, prefix per env | Environment prefix (dev.spacecraft.*) | Prefix scales cleanly as more subdomains are added — avoids awkward middle-of-name env suffixes |
+| WebSocket/API routing | All traffic through CloudFront, Split DNS | Split DNS (CloudFront for frontend, ALB direct for backend) | CloudFront does not reliably support WebSocket connections; ALB is the correct termination point |
 
 ---
 
