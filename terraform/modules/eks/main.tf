@@ -62,3 +62,20 @@ resource "aws_eks_access_policy_association" "github_actions" {
     type = "cluster"
   }
 }
+
+# =============================================================================
+# EKS OIDC PROVIDER — allows pods to assume IAM roles (IRSA)
+# =============================================================================
+
+data "tls_certificate" "main" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "main" {
+  url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.main.certificates[0].sha1_fingerprint]
+  tags = {
+    Name = "${var.project_name}-${var.environment}-oidc-eks"
+  }
+}

@@ -75,21 +75,21 @@ resource "aws_iam_role_policy_attachment" "node_ecr_policy" {
 }
 
 # =============================================================================
-# OpenID Connect (ODIC) Provider and Role
+# GITHUB ACTIONS ROLE
 # =============================================================================
 data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 }
 
-resource "aws_iam_role" "odic" {
-  name               = "${var.project_name}-${var.environment}-odic"
-  assume_role_policy = data.aws_iam_policy_document.odic_trust.json
+resource "aws_iam_role" "github_actions" {
+  name               = "${var.project_name}-${var.environment}-github-actions"
+  assume_role_policy = data.aws_iam_policy_document.github_actions_trust.json
   tags = {
-    Name = "${var.project_name}-${var.environment}-odic"
+    Name = "${var.project_name}-${var.environment}-github-actions"
   }
 }
 
-data "aws_iam_policy_document" "odic_trust" {
+data "aws_iam_policy_document" "github_actions_trust" {
   statement {
     effect  = "Allow"
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -111,13 +111,13 @@ data "aws_iam_policy_document" "odic_trust" {
   }
 }
 
-resource "aws_iam_role_policy" "main" {
-  name   = "${var.project_name}-${var.environment}-odic"
-  role   = aws_iam_role.odic.name
-  policy = data.aws_iam_policy_document.odic.json
+resource "aws_iam_role_policy" "github_actions" {
+  name   = "${var.project_name}-${var.environment}-github-actions"
+  role   = aws_iam_role.github_actions.name
+  policy = data.aws_iam_policy_document.github_actions_policy.json
 }
 
-data "aws_iam_policy_document" "odic" {
+data "aws_iam_policy_document" "github_actions_policy" {
   # ECR
   statement {
     effect    = "Allow"

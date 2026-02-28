@@ -28,18 +28,29 @@ module "iam" {
 module "eks" {
   source = "./modules/eks"
 
-  kubernetes_version = var.eks_kubernetes_version
-  node_instance_type = var.eks_node_instance_type
-  node_min           = var.eks_node_min
-  node_max           = var.eks_node_max
-  node_desired       = var.eks_node_desired
-  private_subnet_ids = module.vpc.private_subnet_ids
+  kubernetes_version      = var.eks_kubernetes_version
+  node_instance_type      = var.eks_node_instance_type
+  node_min                = var.eks_node_min
+  node_max                = var.eks_node_max
+  node_desired            = var.eks_node_desired
+  private_subnet_ids      = module.vpc.private_subnet_ids
   cluster_role_arn        = module.iam.cluster_role_arn
   node_role_arn           = module.iam.node_role_arn
   github_actions_role_arn = module.iam.github_actions_role_arn
   eks_cluster_name        = local.eks_cluster_name
-  project_name       = var.project_name
-  environment        = var.environment
+  project_name            = var.project_name
+  environment             = var.environment
+}
+
+module "eks-addon" {
+  source = "./modules/eks-addon"
+
+  eks_oidc_provider_arn = module.eks.oidc_provider_arn
+  eks_oidc_provider_url = module.eks.oidc_provider_url
+  eks_cluster_name      = local.eks_cluster_name
+  vpc_id                = module.vpc.vpc_id
+  project_name          = var.project_name
+  environment           = var.environment
 }
 
 module "ecr" {
