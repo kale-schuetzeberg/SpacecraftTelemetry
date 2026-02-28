@@ -177,4 +177,11 @@ data "aws_iam_policy_document" "odic" {
     actions   = ["route53:GetChange"]
     resources = ["arn:aws:route53:::change/*"]
   }
+
+  # ALB
+  statement {
+    effect    = "Allow"
+    actions   = ["elasticloadbalancing:DescribeLoadBalancers"]
+    resources = ["*"] # describe actions always require *
+  }
 }
