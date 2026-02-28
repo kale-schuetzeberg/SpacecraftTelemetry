@@ -85,3 +85,12 @@ output "frontend_url" {
   description = "Public frontend URL"
   value       = module.route53.frontend_url
 }
+
+# =============================================================================
+# IAM
+# =============================================================================
+
+output "github_actions_role_arn" {
+  description = "IAM role ARN assumed by GitHub Actions via OIDC"
+  value       = module.iam.github_actions_role_arn
+}

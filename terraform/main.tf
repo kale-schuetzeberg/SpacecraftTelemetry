@@ -1,6 +1,7 @@
 locals {
   frontend_subdomain = var.environment == "prod" ? "spacecraft.${var.domain_name}" : "${var.environment}.spacecraft.${var.domain_name}"
   backend_subdomain  = var.environment == "prod" ? "spacecraft-api.${var.domain_name}" : "${var.environment}.spacecraft-api.${var.domain_name}"
+  eks_cluster_name   = "${var.project_name}-${var.environment}"
 }
 
 module "vpc" {
@@ -15,8 +16,13 @@ module "vpc" {
 module "iam" {
   source = "./modules/iam"
 
-  project_name = var.project_name
-  environment  = var.environment
+  ecr_repository_name        = module.ecr.repository_name
+  eks_cluster_name           = local.eks_cluster_name
+  frontend_bucket_name       = module.s3_cloudfront.bucket_name
+  cloudfront_distribution_id = module.s3_cloudfront.distribution_id
+  route53_hosted_zone_id     = module.route53.hosted_zone_id
+  project_name               = var.project_name
+  environment                = var.environment
 }
 
 module "eks" {
@@ -30,6 +36,7 @@ module "eks" {
   private_subnet_ids = module.vpc.private_subnet_ids
   cluster_role_arn   = module.iam.cluster_role_arn
   node_role_arn      = module.iam.node_role_arn
+  eks_cluster_name   = local.eks_cluster_name
   project_name       = var.project_name
   environment        = var.environment
 }

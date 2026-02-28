@@ -1,10 +1,9 @@
 locals {
-  cluster_name = "${var.project_name}-${var.environment}"
-  group_name   = "${var.project_name}-${var.environment}-nodes"
+  group_name = "${var.project_name}-${var.environment}-nodes"
 }
 
 resource "aws_eks_cluster" "main" {
-  name     = local.cluster_name
+  name     = var.eks_cluster_name
   version  = var.kubernetes_version
   role_arn = var.cluster_role_arn
   vpc_config {
@@ -12,12 +11,12 @@ resource "aws_eks_cluster" "main" {
   }
 
   tags = {
-    Name = "${local.cluster_name}"
+    Name = var.eks_cluster_name
   }
 }
 
 resource "aws_eks_node_group" "main" {
-  cluster_name    = local.cluster_name
+  cluster_name    = var.eks_cluster_name
   node_group_name = local.group_name
   node_role_arn   = var.node_role_arn
   subnet_ids      = var.private_subnet_ids
