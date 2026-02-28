@@ -6,6 +6,15 @@ resource "aws_eks_cluster" "main" {
   name     = var.eks_cluster_name
   version  = var.kubernetes_version
   role_arn = var.cluster_role_arn
+
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
+  upgrade_policy {
+    support_type = "STANDARD"
+  }
+
   vpc_config {
     subnet_ids = var.private_subnet_ids
   }
@@ -32,4 +41,24 @@ resource "aws_eks_node_group" "main" {
   }
 
   depends_on = [aws_eks_cluster.main]
+}
+
+# =============================================================================
+# GITHUB ACTIONS EKS ACCESS
+# =============================================================================
+
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = var.github_actions_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = var.github_actions_role_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
 }

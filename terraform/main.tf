@@ -34,9 +34,10 @@ module "eks" {
   node_max           = var.eks_node_max
   node_desired       = var.eks_node_desired
   private_subnet_ids = module.vpc.private_subnet_ids
-  cluster_role_arn   = module.iam.cluster_role_arn
-  node_role_arn      = module.iam.node_role_arn
-  eks_cluster_name   = local.eks_cluster_name
+  cluster_role_arn        = module.iam.cluster_role_arn
+  node_role_arn           = module.iam.node_role_arn
+  github_actions_role_arn = module.iam.github_actions_role_arn
+  eks_cluster_name        = local.eks_cluster_name
   project_name       = var.project_name
   environment        = var.environment
 }

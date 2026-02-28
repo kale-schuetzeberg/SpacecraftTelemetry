@@ -43,6 +43,11 @@ variable "eks_cluster_name" {
   type        = string
 }
 
+variable "github_actions_role_arn" {
+  description = "IAM role ARN for GitHub Actions to assume via OIDC"
+  type        = string
+}
+
 variable "project_name" {
   description = "Project name used for resource naming and tagging"
   type        = string

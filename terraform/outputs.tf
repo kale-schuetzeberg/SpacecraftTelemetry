@@ -68,6 +68,11 @@ output "frontend_bucket_name" {
   value       = module.s3_cloudfront.bucket_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = module.s3_cloudfront.distribution_id
+}
+
 # =============================================================================
 # ACM
 # =============================================================================
@@ -84,6 +89,11 @@ output "acm_certificate_arn" {
 output "frontend_url" {
   description = "Public frontend URL"
   value       = module.route53.frontend_url
+}
+
+output "hosted_zone_id" {
+  description = "Hosted Zone ID"
+  value       = module.route53.hosted_zone_id
 }
 
 # =============================================================================
