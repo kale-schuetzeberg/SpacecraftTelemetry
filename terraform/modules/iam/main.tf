@@ -117,6 +117,10 @@ resource "aws_iam_role_policy" "github_actions" {
   policy = data.aws_iam_policy_document.github_actions_policy.json
 }
 
+data "aws_route53_zone" "main" {
+  name = var.domain_name
+}
+
 data "aws_iam_policy_document" "github_actions_policy" {
   # ECR
   statement {
@@ -129,7 +133,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
     # arn:${Partition}:ecr:${Region}:${Account}:repository/${RepositoryName}
     effect    = "Allow"
     actions   = ["ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"]
-    resources = ["arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"]
+    resources = ["arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/${var.project_name}-${var.environment}"]
   }
 
   # EKS
@@ -157,10 +161,11 @@ data "aws_iam_policy_document" "github_actions_policy" {
 
   # CloudFront
   statement {
-    # arn:${Partition}:cloudfront::${Account}:distribution/${DistributionId}
+    # Scoped to all distributions in this account — distribution ID is dynamic and
+    # cannot be predicted before creation, so we use a wildcard here.
     effect    = "Allow"
     actions   = ["cloudfront:CreateInvalidation"]
-    resources = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${var.cloudfront_distribution_id}"]
+    resources = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/*"]
   }
 
   # Route 53
@@ -168,7 +173,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
     # arn:${Partition}:route53:::hostedzone/${Id}
     effect    = "Allow"
     actions   = ["route53:ChangeResourceRecordSets"]
-    resources = ["arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}"]
+    resources = ["arn:aws:route53:::hostedzone/${data.aws_route53_zone.main.zone_id}"]
   }
 
   statement {
