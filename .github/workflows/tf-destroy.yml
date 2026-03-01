@@ -1,0 +1,117 @@
+---
+name: Terraform Destroy
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to Destroy infrastructure on'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+
+jobs:
+  terraform-plan-destroy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Update kubeconfig - connect kubectl to cluster
+        run: |
+          aws eks update-kubeconfig --region ${{ vars.AWS_REGION }} \
+            --name ${{ vars.EKS_CLUSTER_NAME }}
+      - name: Get ALB hostname before deletion
+        id: get-alb
+        working-directory: .
+        run: |
+          HOSTNAME=$(kubectl -n spacecraft-telemetry \
+            get ingress spacecraft-telemetry-ingress \
+            -o jsonpath="{.status.loadBalancer.ingress[0].hostname}" \
+            2>/dev/null || echo "")
+          echo "hostname=$HOSTNAME" >> $GITHUB_OUTPUT
+          echo "ALB hostname: $HOSTNAME"
+      - name: Delete Kubernetes manifests
+        working-directory: .
+        run: kubectl delete -f k8s/
+      - name: Wait for ALB to be deleted
+        run: |
+          ALB_HOSTNAME="${{ steps.get-alb.outputs.hostname }}"
+          if [ -z "$ALB_HOSTNAME" ]; then
+            echo "No ALB hostname found, skipping wait"
+            exit 0
+          fi
+          echo "Waiting for ALB $ALB_HOSTNAME to be deleted..."
+          for i in $(seq 1 30); do
+            RESULT=$(aws elbv2 describe-load-balancers \
+              --query \
+              "LoadBalancers[?DNSName=='$ALB_HOSTNAME'].LoadBalancerArn" \
+              --output text 2>/dev/null)
+            if [ -z "$RESULT" ]; then
+              echo "ALB deleted"
+              exit 0
+            fi
+            echo "Attempt $i/30 - ALB still exists, waiting 10s..."
+            sleep 10
+          done
+          echo "Timed out waiting for ALB deletion"
+          exit 1
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config=environments/${{ inputs.environment }}/backend.hcl
+      - name: Terraform Plan
+        run: |
+          terraform plan -destroy \
+            -var-file=environments/${{ inputs.environment }}/terraform.tfvars \
+            -out=tfplan-destroy
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: terraform-plan-destroy
+          path: terraform/tfplan-destroy
+  terraform-destroy:
+    runs-on: ubuntu-latest
+    needs: terraform-plan-destroy
+    defaults:
+      run:
+        working-directory: ./terraform
+    permissions:
+      id-token: write
+      contents: read
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config=environments/${{ inputs.environment }}/backend.hcl
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v8
+        with:
+          name: terraform-plan-destroy
+          path: terraform
+      - name: Terraform Destroy
+        run: |
+          terraform apply tfplan-destroy

@@ -68,6 +68,11 @@ output "frontend_bucket_name" {
   value       = module.s3_cloudfront.bucket_name
 }
 
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID"
+  value       = module.s3_cloudfront.distribution_id
+}
+
 # =============================================================================
 # ACM
 # =============================================================================
@@ -84,4 +89,23 @@ output "acm_certificate_arn" {
 output "frontend_url" {
   description = "Public frontend URL"
   value       = module.route53.frontend_url
+}
+
+output "hosted_zone_id" {
+  description = "Hosted Zone ID"
+  value       = module.route53.hosted_zone_id
+}
+
+# =============================================================================
+# IAM
+# =============================================================================
+
+output "github_actions_role_arn" {
+  description = "IAM role ARN assumed by GitHub Actions via OIDC"
+  value       = module.iam.github_actions_role_arn
+}
+
+output "alb_controller_role_arn" {
+  description = "IAM role ARN for the AWS Load Balancer Controller — used by the deploy pipeline Helm install"
+  value       = module.eks-addon.alb_controller_role_arn
 }
