@@ -312,7 +312,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
       "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock",
       "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration",
       "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:DeleteBucketTagging",
-      "s3:GetBucketAcl", "s3:PutBucketAcl",
+      "s3:GetBucketAcl", "s3:PutBucketAcl", "s3:ListBucketVersions",
       "s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketRequestPayment",
       "s3:GetBucketObjectLockConfiguration", "s3:GetLifecycleConfiguration",
       "s3:GetBucketLogging", "s3:GetBucketNotification", "s3:GetAccelerateConfiguration",
