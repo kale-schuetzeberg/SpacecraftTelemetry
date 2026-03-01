@@ -6,6 +6,8 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing       # public (not internal)
     alb.ingress.kubernetes.io/target-type: ip               # route to pod IPs
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: ACM_CERTIFICATE_ARN_PLACEHOLDER
 spec:
   ingressClassName: alb
   rules:

@@ -1,3 +1,7 @@
+# =============================================================================
+# TERRAFORM VERSION & REQUIRED PROVIDERS
+# =============================================================================
+
 terraform {
   required_version = "~> 1.14"
 
@@ -8,6 +12,10 @@ terraform {
     }
   }
 }
+
+# =============================================================================
+# AWS PROVIDER — default region for all resources
+# =============================================================================
 
 provider "aws" {
   region = var.aws_region
@@ -20,6 +28,12 @@ provider "aws" {
     }
   }
 }
+
+# =============================================================================
+# AWS PROVIDER — us-east-1 alias
+# ACM certificates used by CloudFront must be created in us-east-1 regardless
+# of the primary region. Modules that create these resources use this provider.
+# =============================================================================
 
 provider "aws" {
   alias  = "us_east_1"

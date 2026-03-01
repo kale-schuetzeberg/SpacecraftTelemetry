@@ -46,3 +46,5 @@ tfplan-apply
 tfplan-apply.txt
 tfplan-destroy
 tfplan-destroy.txt
+tfplan-bootstrap
+tfplan-bootstrap.txt
