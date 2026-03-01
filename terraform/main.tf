@@ -47,8 +47,6 @@ module "eks-addon" {
 
   eks_oidc_provider_arn = module.eks.oidc_provider_arn
   eks_oidc_provider_url = module.eks.oidc_provider_url
-  eks_cluster_name      = local.eks_cluster_name
-  vpc_id                = module.vpc.vpc_id
   project_name          = var.project_name
   environment           = var.environment
 }

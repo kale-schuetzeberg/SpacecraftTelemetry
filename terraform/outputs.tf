@@ -104,3 +104,8 @@ output "github_actions_role_arn" {
   description = "IAM role ARN assumed by GitHub Actions via OIDC"
   value       = module.iam.github_actions_role_arn
 }
+
+output "alb_controller_role_arn" {
+  description = "IAM role ARN for the AWS Load Balancer Controller — used by the deploy pipeline Helm install"
+  value       = module.eks-addon.alb_controller_role_arn
+}
