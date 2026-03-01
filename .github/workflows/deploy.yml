@@ -77,6 +77,8 @@ jobs:
             }'
       - name: Install Frontend Dependencies and Build
         working-directory: ./frontend
+        env:
+          VITE_WEBSOCKET_URL: wss://${{ vars.BACKEND_SUBDOMAIN }}/ws/telemetry
         run: |
           npm ci
           npm run build
