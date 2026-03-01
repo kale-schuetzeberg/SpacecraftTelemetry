@@ -123,29 +123,3 @@ jobs:
       - name: Terraform Destroy
         run: |
           terraform apply tfplan-destroy
-      - name: Remove IAM module from Terraform state
-        run: |
-          terraform state list | grep "^module\.iam" | xargs terraform state rm
-      - name: Delete IAM roles via AWS CLI
-        run: |
-          PREFIX="spacecraft-telemetry-${{ inputs.environment }}"
-
-          aws iam detach-role-policy \
-            --role-name "${PREFIX}-eks-cluster-role" \
-            --policy-arn arn:aws:iam::aws:policy/AmazonEKSClusterPolicy 2>/dev/null || true
-          aws iam delete-role \
-            --role-name "${PREFIX}-eks-cluster-role" 2>/dev/null || true
-
-          for policy in AmazonEKSWorkerNodePolicy AmazonEKS_CNI_Policy AmazonEC2ContainerRegistryReadOnly; do
-            aws iam detach-role-policy \
-              --role-name "${PREFIX}-eks-node-role" \
-              --policy-arn "arn:aws:iam::aws:policy/${policy}" 2>/dev/null || true
-          done
-          aws iam delete-role \
-            --role-name "${PREFIX}-eks-node-role" 2>/dev/null || true
-
-          aws iam delete-role-policy \
-            --role-name "${PREFIX}-github-actions" \
-            --policy-name "${PREFIX}-github-actions" 2>/dev/null || true
-          aws iam delete-role \
-            --role-name "${PREFIX}-github-actions" 2>/dev/null || true
