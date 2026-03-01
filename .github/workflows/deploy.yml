@@ -35,6 +35,7 @@ jobs:
       - name: Apply Kubernetes manifests
         run: |
           CONTAINER_NAME="spacecraft-telemetry-backend"
+          sed -i "s|ACM_CERTIFICATE_ARN_PLACEHOLDER|${{ vars.ACM_CERTIFICATE_ARN }}|g" k8s/ingress.yaml
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/
           kubectl set image deployment/spacecraft-telemetry-deployment \
