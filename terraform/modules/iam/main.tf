@@ -279,7 +279,8 @@ data "aws_iam_policy_document" "github_actions_policy" {
       "ecr:DescribeRepositories", "ecr:CreateRepository", "ecr:DeleteRepository",
       "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy",
       "ecr:PutImageScanningConfiguration", "ecr:PutImageTagMutability",
-      "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource"
+      "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
+      "ecr:ListImages", "ecr:DescribeImages", "ecr:BatchDeleteImage"
     ]
     resources = ["*"]
   }
@@ -312,11 +313,12 @@ data "aws_iam_policy_document" "github_actions_policy" {
       "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock",
       "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration",
       "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:DeleteBucketTagging",
-      "s3:GetBucketAcl", "s3:PutBucketAcl", "s3:ListBucketVersions",
+      "s3:GetBucketAcl", "s3:PutBucketAcl",
       "s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketRequestPayment",
       "s3:GetBucketObjectLockConfiguration", "s3:GetLifecycleConfiguration",
       "s3:GetBucketLogging", "s3:GetBucketNotification", "s3:GetAccelerateConfiguration",
-      "s3:GetReplicationConfiguration", "s3:ListAllMyBuckets"
+      "s3:GetReplicationConfiguration", "s3:GetBucketLocation", "s3:ListAllMyBuckets",
+      "s3:ListBucketVersions", "s3:DeleteObjectVersion", "s3:GetObjectVersion"
     ]
     resources = ["*"]
   }
