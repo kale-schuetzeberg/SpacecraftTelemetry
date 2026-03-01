@@ -184,4 +184,24 @@ data "aws_iam_policy_document" "github_actions_policy" {
     actions   = ["elasticloadbalancing:DescribeLoadBalancers"]
     resources = ["*"] # describe actions always require *
   }
+
+  # Terraform state — S3
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["arn:aws:s3:::spacecraft-telemetry-tfstate-${data.aws_caller_identity.current.account_id}/*"]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::spacecraft-telemetry-tfstate-${data.aws_caller_identity.current.account_id}"]
+  }
+
+  # Terraform state — DynamoDB lock table
+  statement {
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:DescribeTable"]
+    resources = ["arn:aws:dynamodb:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:table/terraform-state-lock"]
+  }
 }

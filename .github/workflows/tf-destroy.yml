@@ -45,7 +45,7 @@ jobs:
           echo "ALB hostname: $HOSTNAME"
       - name: Delete Kubernetes manifests
         working-directory: .
-        run: kubectl delete -f k8s/
+        run: kubectl delete -f k8s/ --ignore-not-found
       - name: Wait for ALB to be deleted
         run: |
           ALB_HOSTNAME="${{ steps.get-alb.outputs.hostname }}"
