@@ -22,3 +22,9 @@ variable "environment" {
   description = "Deployment environment (dev or prod)"
   type        = string
 }
+
+variable "force_destroy" {
+  description = "Force delete the S3 bucket even if it contains objects — set true for dev, false for prod"
+  type        = bool
+  default     = false
+}

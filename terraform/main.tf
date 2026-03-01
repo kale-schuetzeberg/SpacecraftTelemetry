@@ -75,6 +75,7 @@ module "s3_cloudfront" {
   frontend_subdomain   = local.frontend_subdomain
   project_name         = var.project_name
   environment          = var.environment
+  force_destroy        = var.environment == "dev"
 }
 
 # spacecraft-api.nodenavi.com -> ALB record is managed by the CI/CD pipeline

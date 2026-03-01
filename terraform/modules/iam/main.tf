@@ -224,7 +224,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
       "ec2:DescribeAvailabilityZones", "ec2:DescribeVpcs", "ec2:DescribeVpcAttribute",
       "ec2:DescribeSubnets", "ec2:DescribeRouteTables", "ec2:DescribeInternetGateways",
       "ec2:DescribeNatGateways", "ec2:DescribeAddresses", "ec2:DescribeAddressesAttribute",
-      "ec2:DescribeSecurityGroups", "ec2:DescribeTags",
+      "ec2:DescribeNetworkInterfaces", "ec2:DescribeSecurityGroups", "ec2:DescribeTags",
       "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:ModifyVpcAttribute",
       "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:ModifySubnetAttribute",
       "ec2:CreateRouteTable", "ec2:DeleteRouteTable",
@@ -233,7 +233,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
       "ec2:CreateInternetGateway", "ec2:DeleteInternetGateway",
       "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
       "ec2:CreateNatGateway", "ec2:DeleteNatGateway",
-      "ec2:AllocateAddress", "ec2:ReleaseAddress",
+      "ec2:AllocateAddress", "ec2:ReleaseAddress", "ec2:DisassociateAddress",
       "ec2:CreateTags", "ec2:DeleteTags"
     ]
     resources = ["*"]

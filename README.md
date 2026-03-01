@@ -118,7 +118,7 @@ You should see:
 - [x] Configure Kubernetes deployment
 - [x] AWS infrastructure with Terraform (VPC, EKS, ECR, S3, CloudFront, IAM)
 - [x] Custom domain with HTTPS (Route53 + ACM — spacecraft.nodenavi.com)
-- [ ] CI/CD pipeline with GitHub Actions
+- [x] CI/CD pipeline with GitHub Actions
 
 ### Planned Enhancements
 
@@ -166,6 +166,13 @@ MIT License - Feel free to use this as a learning resource or reference for your
 **Impact:** Telemetry values can appear to jump when a WebSocket reconnects to a different pod
 **Workaround:** Run a single replica
 **Planned Fix:** Phase 3 — move simulation state to Redis so all pods share a single source of truth
+
+### Stale Route53 CNAME After Fresh Deploy
+**Issue:** The deploy pipeline polls the Kubernetes ingress for the ALB hostname and upserts the Route53 CNAME. If the ALB controller updates the hostname after the pipeline already captured it (e.g. during cert-manager interaction or controller restart), the CNAME ends up pointing to a stale or non-existent ALB.
+
+**Impact:** WebSocket connections fail after a fresh deploy — `dev.spacecraft-api.nodenavi.com` resolves to the wrong hostname. Once the ALB stabilizes and the TTL (300s) expires, DNS will sync up and the app will connect on its own.
+**Workaround:** Wait ~5 minutes for DNS to catch up, or manually upsert the correct Route53 CNAME: `kubectl -n spacecraft-telemetry get ingress spacecraft-telemetry-ingress -o jsonpath="{.status.loadBalancer.ingress[0].hostname}"`
+**Planned Fix:** Replace pipeline CNAME polling with a Route53 alias record pointing directly to the ALB ARN, which AWS keeps in sync automatically
 
 ### Telemetry Graph Time Scale Mismatch
 **Issue:** When the simulator update interval is changed (e.g., `simulator.update(60)` for 1-minute steps), the frontend graphs still display "last 100 seconds" but each data point actually represents the configured time step (60 seconds in this example). This causes the X-axis labels to be misleading - "100s ago" actually means "100 minutes ago" when using 60-second steps.
