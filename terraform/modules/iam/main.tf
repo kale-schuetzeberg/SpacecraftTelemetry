@@ -117,6 +117,10 @@ resource "aws_iam_role_policy" "github_actions" {
   policy = data.aws_iam_policy_document.github_actions_policy.json
 }
 
+data "aws_route53_zone" "main" {
+  name = var.domain_name
+}
+
 data "aws_iam_policy_document" "github_actions_policy" {
   # ECR
   statement {
@@ -129,7 +133,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
     # arn:${Partition}:ecr:${Region}:${Account}:repository/${RepositoryName}
     effect    = "Allow"
     actions   = ["ecr:BatchCheckLayerAvailability", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:PutImage"]
-    resources = ["arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/${var.ecr_repository_name}"]
+    resources = ["arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/${var.project_name}-${var.environment}"]
   }
 
   # EKS
@@ -157,10 +161,11 @@ data "aws_iam_policy_document" "github_actions_policy" {
 
   # CloudFront
   statement {
-    # arn:${Partition}:cloudfront::${Account}:distribution/${DistributionId}
+    # Scoped to all distributions in this account — distribution ID is dynamic and
+    # cannot be predicted before creation, so we use a wildcard here.
     effect    = "Allow"
     actions   = ["cloudfront:CreateInvalidation"]
-    resources = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/${var.cloudfront_distribution_id}"]
+    resources = ["arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/*"]
   }
 
   # Route 53
@@ -168,7 +173,7 @@ data "aws_iam_policy_document" "github_actions_policy" {
     # arn:${Partition}:route53:::hostedzone/${Id}
     effect    = "Allow"
     actions   = ["route53:ChangeResourceRecordSets"]
-    resources = ["arn:aws:route53:::hostedzone/${var.route53_hosted_zone_id}"]
+    resources = ["arn:aws:route53:::hostedzone/${data.aws_route53_zone.main.zone_id}"]
   }
 
   statement {
@@ -183,5 +188,153 @@ data "aws_iam_policy_document" "github_actions_policy" {
     effect    = "Allow"
     actions   = ["elasticloadbalancing:DescribeLoadBalancers"]
     resources = ["*"] # describe actions always require *
+  }
+
+  # Terraform state — S3
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+    resources = ["arn:aws:s3:::spacecraft-telemetry-tfstate-${data.aws_caller_identity.current.account_id}/*"]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::spacecraft-telemetry-tfstate-${data.aws_caller_identity.current.account_id}"]
+  }
+
+  # Terraform state — DynamoDB lock table
+  statement {
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem", "dynamodb:DescribeTable"]
+    resources = ["arn:aws:dynamodb:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:table/terraform-state-lock"]
+  }
+
+  # =============================================================================
+  # TERRAFORM INFRASTRUCTURE MANAGEMENT
+  # The actions below are required for Terraform to create, read, update, and
+  # delete infrastructure resources. Describe/List/Get actions require * because
+  # AWS does not support resource-level restrictions on read-only calls.
+  # =============================================================================
+
+  # EC2 / VPC
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeAvailabilityZones", "ec2:DescribeVpcs", "ec2:DescribeVpcAttribute",
+      "ec2:DescribeSubnets", "ec2:DescribeRouteTables", "ec2:DescribeInternetGateways",
+      "ec2:DescribeNatGateways", "ec2:DescribeAddresses", "ec2:DescribeAddressesAttribute",
+      "ec2:DescribeNetworkInterfaces", "ec2:DescribeSecurityGroups", "ec2:DescribeTags",
+      "ec2:CreateVpc", "ec2:DeleteVpc", "ec2:ModifyVpcAttribute",
+      "ec2:CreateSubnet", "ec2:DeleteSubnet", "ec2:ModifySubnetAttribute",
+      "ec2:CreateRouteTable", "ec2:DeleteRouteTable",
+      "ec2:CreateRoute", "ec2:DeleteRoute",
+      "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable",
+      "ec2:CreateInternetGateway", "ec2:DeleteInternetGateway",
+      "ec2:AttachInternetGateway", "ec2:DetachInternetGateway",
+      "ec2:CreateNatGateway", "ec2:DeleteNatGateway",
+      "ec2:AllocateAddress", "ec2:ReleaseAddress", "ec2:DisassociateAddress",
+      "ec2:CreateTags", "ec2:DeleteTags"
+    ]
+    resources = ["*"]
+  }
+
+  # IAM — roles, policies, and OIDC providers for EKS/IRSA
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:GetRole", "iam:CreateRole", "iam:DeleteRole", "iam:UpdateRole",
+      "iam:TagRole", "iam:UntagRole", "iam:ListRoleTags",
+      "iam:AttachRolePolicy", "iam:DetachRolePolicy", "iam:ListAttachedRolePolicies",
+      "iam:PutRolePolicy", "iam:GetRolePolicy", "iam:DeleteRolePolicy", "iam:ListRolePolicies",
+      "iam:PassRole", "iam:ListInstanceProfilesForRole",
+      "iam:GetOpenIDConnectProvider", "iam:ListOpenIDConnectProviders",
+      "iam:CreateOpenIDConnectProvider", "iam:DeleteOpenIDConnectProvider",
+      "iam:TagOpenIDConnectProvider", "iam:UntagOpenIDConnectProvider"
+    ]
+    resources = ["*"]
+  }
+
+  # EKS — cluster, node groups, access entries
+  statement {
+    effect = "Allow"
+    actions = [
+      "eks:CreateCluster", "eks:DeleteCluster", "eks:UpdateClusterConfig", "eks:UpdateClusterVersion",
+      "eks:DescribeCluster", "eks:ListClusters",
+      "eks:CreateNodegroup", "eks:DeleteNodegroup", "eks:UpdateNodegroupConfig",
+      "eks:UpdateNodegroupVersion", "eks:DescribeNodegroup", "eks:ListNodegroups",
+      "eks:CreateAccessEntry", "eks:DeleteAccessEntry", "eks:DescribeAccessEntry",
+      "eks:UpdateAccessEntry", "eks:ListAccessEntries",
+      "eks:AssociateAccessPolicy", "eks:DisassociateAccessPolicy", "eks:ListAssociatedAccessPolicies",
+      "eks:ListAccessPolicies",
+      "eks:TagResource", "eks:UntagResource"
+    ]
+    resources = ["*"]
+  }
+
+  # ECR — repository management
+  statement {
+    effect = "Allow"
+    actions = [
+      "ecr:DescribeRepositories", "ecr:CreateRepository", "ecr:DeleteRepository",
+      "ecr:GetRepositoryPolicy", "ecr:SetRepositoryPolicy", "ecr:DeleteRepositoryPolicy",
+      "ecr:PutImageScanningConfiguration", "ecr:PutImageTagMutability",
+      "ecr:ListTagsForResource", "ecr:TagResource", "ecr:UntagResource",
+      "ecr:ListImages", "ecr:DescribeImages", "ecr:BatchDeleteImage"
+    ]
+    resources = ["*"]
+  }
+
+  # ACM — certificate lifecycle
+  statement {
+    effect = "Allow"
+    actions = [
+      "acm:RequestCertificate", "acm:DeleteCertificate", "acm:DescribeCertificate",
+      "acm:GetCertificate", "acm:ListCertificates",
+      "acm:AddTagsToCertificate", "acm:ListTagsForCertificate", "acm:RemoveTagsFromCertificate"
+    ]
+    resources = ["*"]
+  }
+
+  # Route 53 — hosted zone reads (zone is a data source, records managed above)
+  statement {
+    effect    = "Allow"
+    actions   = ["route53:ListHostedZones", "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:ListTagsForResource", "route53:ListTagsForResources"]
+    resources = ["*"]
+  }
+
+  # S3 — frontend bucket management
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket", "s3:DeleteBucket", "s3:HeadBucket",
+      "s3:GetBucketPolicy", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy",
+      "s3:GetBucketVersioning", "s3:PutBucketVersioning",
+      "s3:GetBucketPublicAccessBlock", "s3:PutBucketPublicAccessBlock",
+      "s3:GetEncryptionConfiguration", "s3:PutEncryptionConfiguration",
+      "s3:GetBucketTagging", "s3:PutBucketTagging", "s3:DeleteBucketTagging",
+      "s3:GetBucketAcl", "s3:PutBucketAcl",
+      "s3:GetBucketCORS", "s3:GetBucketWebsite", "s3:GetBucketRequestPayment",
+      "s3:GetBucketObjectLockConfiguration", "s3:GetLifecycleConfiguration",
+      "s3:GetBucketLogging", "s3:GetBucketNotification", "s3:GetAccelerateConfiguration",
+      "s3:GetReplicationConfiguration", "s3:GetBucketLocation", "s3:ListAllMyBuckets",
+      "s3:ListBucketVersions", "s3:DeleteObjectVersion", "s3:GetObjectVersion"
+    ]
+    resources = ["*"]
+  }
+
+  # CloudFront — distribution and OAC management
+  statement {
+    effect = "Allow"
+    actions = [
+      "cloudfront:GetOriginAccessControl", "cloudfront:CreateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl", "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:ListOriginAccessControls",
+      "cloudfront:GetDistribution", "cloudfront:GetDistributionConfig",
+      "cloudfront:CreateDistribution", "cloudfront:DeleteDistribution", "cloudfront:UpdateDistribution",
+      "cloudfront:ListDistributions",
+      "cloudfront:TagResource", "cloudfront:UntagResource", "cloudfront:ListTagsForResource"
+    ]
+    resources = ["*"]
   }
 }

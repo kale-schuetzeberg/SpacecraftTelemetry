@@ -14,6 +14,7 @@ on:
 jobs:
   terraform-plan-destroy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     defaults:
       run:
         working-directory: ./terraform
@@ -44,7 +45,7 @@ jobs:
           echo "ALB hostname: $HOSTNAME"
       - name: Delete Kubernetes manifests
         working-directory: .
-        run: kubectl delete -f k8s/
+        run: kubectl delete -f k8s/ --ignore-not-found
       - name: Wait for ALB to be deleted
         run: |
           ALB_HOSTNAME="${{ steps.get-alb.outputs.hostname }}"
@@ -76,6 +77,13 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan -destroy \
+            -target=module.vpc \
+            -target=module.eks \
+            -target=module.eks-addon \
+            -target=module.ecr \
+            -target=module.acm \
+            -target=module.route53 \
+            -target=module.s3_cloudfront \
             -var-file=environments/${{ inputs.environment }}/terraform.tfvars \
             -out=tfplan-destroy
       - name: Upload Terraform Plan

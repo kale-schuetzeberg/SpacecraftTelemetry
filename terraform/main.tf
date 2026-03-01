@@ -16,13 +16,11 @@ module "vpc" {
 module "iam" {
   source = "./modules/iam"
 
-  ecr_repository_name        = module.ecr.repository_name
-  eks_cluster_name           = local.eks_cluster_name
-  frontend_bucket_name       = module.s3_cloudfront.bucket_name
-  cloudfront_distribution_id = module.s3_cloudfront.distribution_id
-  route53_hosted_zone_id     = module.route53.hosted_zone_id
-  project_name               = var.project_name
-  environment                = var.environment
+  eks_cluster_name     = local.eks_cluster_name
+  frontend_bucket_name = var.frontend_bucket_name
+  domain_name          = var.domain_name
+  project_name         = var.project_name
+  environment          = var.environment
 }
 
 module "eks" {
@@ -56,6 +54,7 @@ module "ecr" {
 
   project_name = var.project_name
   environment  = var.environment
+  force_delete = var.environment == "dev"
 }
 
 module "acm" {
@@ -76,6 +75,7 @@ module "s3_cloudfront" {
   frontend_subdomain   = local.frontend_subdomain
   project_name         = var.project_name
   environment          = var.environment
+  force_destroy        = var.environment == "dev"
 }
 
 # spacecraft-api.nodenavi.com -> ALB record is managed by the CI/CD pipeline
