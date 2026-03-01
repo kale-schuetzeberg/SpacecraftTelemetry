@@ -14,6 +14,7 @@ on:
 jobs:
   terraform-plan-destroy:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     defaults:
       run:
         working-directory: ./terraform
