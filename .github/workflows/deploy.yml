@@ -50,7 +50,8 @@ jobs:
               sleep 5
             done
           '
-          echo "ALB controller webhook ready"
+          echo "Webhook CA bundle ready — sleeping 30s for kube-apiserver cache refresh"
+          sleep 30
       - name: Apply Kubernetes manifests
         run: |
           CONTAINER_NAME="spacecraft-telemetry-backend"
