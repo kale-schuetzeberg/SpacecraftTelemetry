@@ -76,3 +76,19 @@ jobs:
       - name: Terraform Apply
         run: |
           terraform apply tfplan-apply
+      - name: Update GitHub environment variables
+        env:
+          GH_TOKEN: ${{ secrets.GH_ENV_VARS_PAT_KALE }}
+        run: |
+          gh variable set VPC_ID \
+            --repo ${{ github.repository }} \
+            --env ${{ inputs.environment }} \
+            --body "$(terraform output -raw vpc_id)"
+          gh variable set ACM_CERTIFICATE_ARN \
+            --repo ${{ github.repository }} \
+            --env ${{ inputs.environment }} \
+            --body "$(terraform output -raw acm_certificate_arn)"
+          gh variable set CLOUDFRONT_DISTRIBUTION_ID \
+            --repo ${{ github.repository }} \
+            --env ${{ inputs.environment }} \
+            --body "$(terraform output -raw cloudfront_distribution_id)"
