@@ -7,3 +7,4 @@ data:
   environment: prod
   port: "8000"
   log_level: INFO
+  CORS_ORIGINS: CORS_ORIGINS_PLACEHOLDER

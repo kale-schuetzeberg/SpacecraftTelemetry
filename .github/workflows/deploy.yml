@@ -56,6 +56,7 @@ jobs:
         run: |
           CONTAINER_NAME="spacecraft-telemetry-backend"
           sed -i "s|ACM_CERTIFICATE_ARN_PLACEHOLDER|${{ vars.ACM_CERTIFICATE_ARN }}|g" k8s/ingress.yaml
+          sed -i "s|CORS_ORIGINS_PLACEHOLDER|${{ vars.CORS_ORIGINS }}|g" k8s/configmap.yaml
           kubectl apply -f k8s/namespace.yaml
           kubectl apply -f k8s/
           kubectl set image deployment/spacecraft-telemetry-deployment \
