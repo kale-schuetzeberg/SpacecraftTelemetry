@@ -100,6 +100,7 @@ jobs:
         working-directory: ./frontend
         env:
           VITE_WEBSOCKET_URL: wss://${{ vars.BACKEND_SUBDOMAIN }}/ws/telemetry
+          VITE_API_URL: https://${{ vars.BACKEND_SUBDOMAIN }}
         run: |
           npm ci
           npm run build

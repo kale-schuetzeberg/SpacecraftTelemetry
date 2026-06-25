@@ -1,4 +1,4 @@
-import './ConnectionStatus.css';
+import "./ConnectionStatus.css";
 
 interface ConnectionStatusProps {
   isConnected: boolean;
@@ -6,13 +6,19 @@ interface ConnectionStatusProps {
   packetsLost: number;
 }
 
-function ConnectionStatus({ isConnected, latencyMs, packetsLost }: ConnectionStatusProps) {
+function ConnectionStatus({
+  isConnected,
+  latencyMs,
+  packetsLost,
+}: ConnectionStatusProps) {
   return (
-    <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+    <div
+      className={`connection-status ${isConnected ? "connected" : "disconnected"}`}
+    >
       <div className="status-main">
         <div className="status-dot"></div>
         <span className="status-text">
-          {isConnected ? 'Connected' : 'Disconnected'}
+          {isConnected ? "Connected" : "Disconnected"}
         </span>
       </div>
 
@@ -22,9 +28,7 @@ function ConnectionStatus({ isConnected, latencyMs, packetsLost }: ConnectionSta
             {latencyMs}ms
           </span>
           {packetsLost > 0 && (
-            <span className="packet-loss">
-              {packetsLost} lost
-            </span>
+            <span className="packet-loss">{packetsLost} lost</span>
           )}
         </div>
       )}
@@ -33,9 +37,9 @@ function ConnectionStatus({ isConnected, latencyMs, packetsLost }: ConnectionSta
 }
 
 function getLatencyClass(latencyMs: number): string {
-  if (latencyMs < 50) return 'good';
-  if (latencyMs < 100) return 'ok';
-  return 'poor';
+  if (latencyMs < 50) return "good";
+  if (latencyMs < 100) return "ok";
+  return "poor";
 }
 
 export default ConnectionStatus;

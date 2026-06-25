@@ -1,152 +1,34 @@
-# AWS Production Architecture
-
-## Document Information
+# Spacecraft Telemetry — AWS Architecture
 
 | Field | Value |
 |-------|-------|
-| Project | Spacecraft Telemetry Ground Station |
-| Version | 1.1 |
 | Author | Kale Schuetzeberg |
-| Last Updated | 2026-02-26 |
-| Status | Draft |
+| Last Updated | 2026-03-25 |
+| AWS Account | 571252911393 |
+| AWS Region | us-east-1 |
+
+Real-time WebSocket telemetry streaming app. React frontend served via CloudFront + S3. Python FastAPI backend running on EKS, exposed via ALB. Infrastructure managed with Terraform, deployed via GitHub Actions.
+
+**Cost:** Dev ~$110/month (spin up on demand), Prod ~$184/month. Largest drivers: EKS control plane ($72), NAT Gateway ($32), ALB ($22).
 
 ---
 
-## 1. Executive Summary
+## 1. Architecture
 
-This document outlines the AWS production architecture for the Spacecraft Telemetry Ground Station application. The architecture is designed to demonstrate proficiency in modern cloud infrastructure including containerization, Kubernetes orchestration, and AWS services while maintaining production-grade reliability and security.
+### 1.1 High-Level Diagram
 
-### Key Objectives
+![AWS Architecture Diagram](./aws_architecture.png "AWS Architecture Diagram")
 
-- Deploy a real-time WebSocket-based telemetry streaming application
-- Demonstrate hands-on experience with Docker, Kubernetes, and core AWS services
-- Implement infrastructure as code using Terraform
-- Establish CI/CD pipeline for automated deployments
-- Enable monitoring, observability, and secure design practices
-
----
-
-## 2. Architecture Overview
-
-### 2.1 High-Level Architecture Diagram
+### 1.2 Request Flow
 
 ```
-                                    ┌─────────────────────────────────────────┐
-                                    │              INTERNET                   │
-                                    └─────────────────────┬───────────────────┘
-                                                          │
-                                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                                      AWS CLOUD                                          │
-│  ┌───────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                               Route 53 (DNS)                                      │  │
-│  │              spacecraft.nodenavi.com / spacecraft-api.nodenavi.com                │  │
-│  └───────────────────────────────────────┬───────────────────────────────────────────┘  │
-│                                          │                                              │
-│                    ┌─────────────────────┴─────────────────────┐                        │
-│                    │                                           │                        │
-│                    ▼                                           ▼                        │
-│  ┌─────────────────────────────────┐         ┌─────────────────────────────────────┐    │
-│  │     CloudFront Distribution     │         │    Application Load Balancer        │    │
-│  │     (CDN + ACM Certificate)     │         │    (ACM Certificate for HTTPS)      │    │
-│  │                                 │         │                                     │    │
-│  │  Origin: S3 (static assets)     │         │  Target: EKS Service (port 8000)    │    │
-│  │  Path: /*                       │         │  Path: /api/*, /ws/*                │    │
-│  └───────────────┬─────────────────┘         └──────────────────┬──────────────────┘    │
-│                  │                                              │                       │
-│                  ▼                                              │                       │
-│  ┌─────────────────────────────────┐                            │                       │
-│  │         S3 Bucket               │                            │                       │
-│  │    (React Production Build)     │                            │                       │
-│  │                                 │                            │                       │
-│  │  - index.html                   │                            │                       │
-│  │  - static/js/*.js               │                            │                       │
-│  │  - static/css/*.css             │                            │                       │
-│  └─────────────────────────────────┘                            │                       │
-│                                                                 │                       │
-│  ┌──────────────────────────────────────────────────────────────┴────────────────────┐  │
-│  │                                    VPC                                            │  │
-│  │                              (10.0.0.0/16)                                        │  │
-│  │                                                                                   │  │
-│  │   ┌─────────────────────────────────────────────────────────────────────────┐     │  │
-│  │   │                    Public Subnets (10.0.1.0/24, 10.0.2.0/24)            │     │  │
-│  │   │                                                                         │     │  │
-│  │   │              ┌──────────────┐                                           │     │  │
-│  │   │              │  NAT Gateway │   (Single, cost optimized)                │     │  │
-│  │   │              │    (AZ-a)    │                                           │     │  │
-│  │   │              └──────────────┘                                           │     │  │
-│  │   └─────────────────────────────────────────────────────────────────────────┘     │  │
-│  │                                                                                   │  │
-│  │   ┌─────────────────────────────────────────────────────────────────────────┐     │  │
-│  │   │                   Private Subnets (10.0.10.0/24, 10.0.11.0/24)          │     │  │
-│  │   │                                                                         │     │  │
-│  │   │   ┌──────────────────────────────────────────────────────────────────┐  │     │  │
-│  │   │   │                      EKS CLUSTER                                 │  │     │  │
-│  │   │   │                                                                  │  │     │  │
-│  │   │   │  ┌─────────────────────────────────────────────────────────────┐ │  │     │  │
-│  │   │   │  │              EC2 Worker Node Group                          │ │  │     │  │
-│  │   │   │  │        (t3.small, prod: 1-2 nodes / dev: 1-2 nodes)         │ │  │     │  │
-│  │   │   │  │                                                             │ │  │     │  │
-│  │   │   │  │   ┌─────────────────┐      ┌─────────────────┐              │ │  │     │  │
-│  │   │   │  │   │  Backend Pod    │      │  Backend Pod    │              │ │  │     │  │
-│  │   │   │  │   │  ┌───────────┐  │      │  ┌───────────┐  │              │ │  │     │  │
-│  │   │   │  │   │  │  FastAPI  │  │      │  │  FastAPI  │  │              │ │  │     │  │
-│  │   │   │  │   │  │  + Uvicorn│  │      │  │  + Uvicorn│  │              │ │  │     │  │
-│  │   │   │  │   │  │  :8000    │  │      │  │  :8000    │  │              │ │  │     │  │
-│  │   │   │  │   │  └───────────┘  │      │  └───────────┘  │              │ │  │     │  │
-│  │   │   │  │   └─────────────────┘      └─────────────────┘              │ │  │     │  │
-│  │   │   │  │                                                             │ │  │     │  │
-│  │   │   │  └─────────────────────────────────────────────────────────────┘ │  │     │  │
-│  │   │   │                                                                  │  │     │  │
-│  │   │   │  Kubernetes Resources:                                           │  │     │  │
-│  │   │   │  - Deployment (backend, 2 replicas)                              │  │     │  │
-│  │   │   │  - Service (ClusterIP)                                           │  │     │  │
-│  │   │   │  - Ingress (ALB Ingress Controller)                              │  │     │  │
-│  │   │   │  - HorizontalPodAutoscaler                                       │  │     │  │
-│  │   │   │  - ConfigMap, Secrets                                            │  │     │  │
-│  │   │   └──────────────────────────────────────────────────────────────────┘  │     │  │
-│  │   │                                                                         │     │  │
-│  │   └─────────────────────────────────────────────────────────────────────────┘     │  │
-│  │                                                                                   │  │
-│  │   ┌─────────────────────────────────────────────────────────────────────────┐     │  │
-│  │   │                   Database Subnets (10.0.20.0/24, 10.0.21.0/24)         │     │  │
-│  │   │                              (Phase 3)                                  │     │  │
-│  │   │   ┌───────────────────────────────────────────────────────────────┐     │     │  │
-│  │   │   │                    RDS PostgreSQL                             │     │     │  │
-│  │   │   │                  (Multi-AZ, db.t3.micro)                      │     │     │  │
-│  │   │   └───────────────────────────────────────────────────────────────┘     │     │  │
-│  │   └─────────────────────────────────────────────────────────────────────────┘     │  │
-│  │                                                                                   │  │
-│  └───────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                                                         │
-│  ┌──────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                              Supporting Services                                 │   │
-│  │                                                                                  │   │
-│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐                   │   │
-│  │  │       ECR       │  │   CloudWatch    │  │     Lambda      │                   │   │
-│  │  │  (Container     │  │   (Logs &       │  │   (Health       │                   │   │
-│  │  │   Registry)     │  │    Metrics)     │  │    Checks)      │                   │   │
-│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘                   │   │
-│  │                                                                                  │   │
-│  └──────────────────────────────────────────────────────────────────────────────────┘   │
-│                                                                                         │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 2.2 Data Flow Diagram
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────┐
-│                              REQUEST FLOW                                            │
-└──────────────────────────────────────────────────────────────────────────────────────┘
-
 STATIC ASSETS (React App):
 ┌────────┐     ┌─────────┐     ┌────────────┐     ┌────────┐
 │ Browser│────▶│ Route53 │────▶│ CloudFront │────▶│   S3   │
 │        │◀────│         │◀────│  (cached)  │◀────│        │
 └────────┘     └─────────┘     └────────────┘     └────────┘
-     spacecraft.nodenavi.com        │
-   (dev.spacecraft.nodenavi.com)    │
+     spacecraft.nodenavi.com
+   (dev.spacecraft.nodenavi.com)
                               Cache HIT: ~10ms
                               Cache MISS: ~50ms
 
@@ -156,462 +38,212 @@ WEBSOCKET TELEMETRY STREAM:
 │ Browser│────▶│ Route53 │────▶│   ALB   │────▶│   EKS   │────▶│  FastAPI    │
 │   JS   │◀────│         │◀────│ (wss://)│◀────│ Service │◀────│  WebSocket  │
 └────────┘     └─────────┘     └─────────┘     └─────────┘     └─────────────┘
-  spacecraft-api.nodenavi.com            │                Persistent Connection
-  (dev.spacecraft-api.nodenavi.com)      │
+  spacecraft-api.nodenavi.com                            Persistent Connection
+  (dev.spacecraft-api.nodenavi.com)
     │◀────────────────────── Telemetry @ 1Hz ─────────────────────────│
+
 
 NOTE: spacecraft-api Route53 record is managed by the CI/CD pipeline,
 not Terraform. The ALB is provisioned by the Kubernetes Load Balancer
 Controller and does not exist at terraform apply time.
-
-
-API REQUESTS (Future):
-┌────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────────┐
-│ Browser│────▶│ Route53 │────▶│   ALB   │────▶│   EKS   │────▶│  FastAPI    │
-│        │◀────│         │◀────│ (HTTPS) │◀────│ Service │◀────│  REST API   │
-└────────┘     └─────────┘     └─────────┘     └─────────┘     └─────────────┘
-                                                                      │
-                                                                      ▼
-                                                               ┌─────────────┐
-                                                               │     RDS     │
-                                                               │ (Phase 3)   │
-                                                               └─────────────┘
 ```
 
 ---
 
-## 3. Component Specifications
+## 2. Networking Reference
 
-### 3.1 Compute
-
-| Component | Specification              | Purpose |
-|-----------|----------------------------|---------|
-| EKS Cluster | Kubernetes 1.35 | Container orchestration |
-| EC2 Worker Nodes | t3.small (2 vCPU, 2GB RAM) | Run Kubernetes pods |
-| Node Group (prod) | Min: 1, Max: 2, Desired: 1 | Auto-scaling capacity |
-| Node Group (dev) | Min: 1, Max: 2, Desired: 1 | Auto-scaling capacity |
-| Backend Pods | 2 replicas (HPA: 2-6)      | FastAPI application |
-
-### 3.2 Networking
-
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| VPC | 10.0.0.0/16 | Isolated network |
-| Public Subnets | 10.0.1.0/24, 10.0.2.0/24 | NAT Gateways, ALB |
+| Component | CIDR / Spec | Notes |
+|-----------|-------------|-------|
+| VPC | 10.0.0.0/16 | |
+| Public Subnets | 10.0.1.0/24, 10.0.2.0/24 | ALB, NAT Gateway |
 | Private Subnets | 10.0.10.0/24, 10.0.11.0/24 | EKS worker nodes |
-| Database Subnets | 10.0.20.0/24, 10.0.21.0/24 | RDS (Phase 3) |
-| ALB | Application Load Balancer | HTTPS/WSS termination |
-| NAT Gateway | 1x (cost optimized) | Outbound internet for private subnets |
+| Database Subnets | 10.0.20.0/24, 10.0.21.0/24 | Reserved for RDS (future) |
+| NAT Gateway | 1x in AZ-a | Cost optimized — single AZ, not HA |
 
-### 3.3 Storage & Database
+### Security Groups
 
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| S3 Bucket | Standard, versioned | React static assets |
-| ECR | Private repository | Docker image storage |
-| RDS PostgreSQL | db.t3.micro, Multi-AZ (Phase 3) | Telemetry persistence |
-
-### 3.4 Security
-
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| ACM Certificates | Managed SSL/TLS | HTTPS encryption |
-| Security Groups | Least-privilege rules | Network access control |
-| IAM Roles | IRSA (IAM Roles for Service Accounts) | Pod-level permissions |
-| Secrets Manager | Encrypted secrets | Database credentials |
-
-### 3.5 Monitoring & Observability
-
-| Component | Specification | Purpose |
-|-----------|--------------|---------|
-| CloudWatch Logs | Container logs, ALB logs | Centralized logging |
-| CloudWatch Metrics | CPU, Memory, Network | Infrastructure metrics |
-| CloudWatch Alarms | Threshold-based alerts | Incident notification |
-| Container Insights | EKS monitoring | Kubernetes metrics |
-
----
-
-## 4. Security Architecture
-
-### 4.1 Network Security
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           SECURITY LAYERS                                   │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  LAYER 1: Edge Security                                                     │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  • CloudFront with AWS Shield (DDoS protection)                        │ │
-│  │  • ACM certificates (TLS 1.2+)                                         │ │
-│  │  • WAF rules (optional, for API protection)                            │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│  LAYER 2: Network Security                                                  │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  • VPC isolation (no direct internet access to workers)                │ │
-│  │  • Security Groups (stateful firewall)                                 │ │
-│  │  • NACLs (stateless subnet-level filtering)                            │ │
-│  │  • Private subnets for all workloads                                   │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│  LAYER 3: Application Security                                              │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  • Kubernetes Network Policies                                         │ │
-│  │  • Pod Security Standards (restricted)                                 │ │
-│  │  • Non-root container execution                                        │ │
-│  │  • Read-only root filesystem                                           │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-│  LAYER 4: Data Security                                                     │
-│  ┌────────────────────────────────────────────────────────────────────────┐ │
-│  │  • Encryption at rest (S3, RDS, EBS)                                   │ │
-│  │  • Encryption in transit (TLS everywhere)                              │ │
-│  │  • Secrets Manager for credentials                                     │ │
-│  │  • IAM least-privilege access                                          │ │
-│  └────────────────────────────────────────────────────────────────────────┘ │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### 4.2 Security Groups
-
-| Security Group | Inbound Rules | Outbound Rules |
-|----------------|---------------|----------------|
+| Security Group | Inbound | Outbound |
+|----------------|---------|----------|
 | ALB-SG | 443 from 0.0.0.0/0 | All to EKS-SG |
 | EKS-SG | 8000 from ALB-SG, All from EKS-SG | All to 0.0.0.0/0 |
 | RDS-SG | 5432 from EKS-SG | None |
 
 ---
 
+## 3. Security
+
+- **Edge**: CloudFront + AWS Shield Standard (automatic), ACM certificates (TLS 1.2+)
+- **Network**: VPC isolation, Security Groups, private subnets for all workloads
+- **Application**: Kubernetes Network Policy (ingress restricted to :8000), resource limits on all pods
+- **Data**: S3 encryption at rest (AWS default), TLS in transit via ACM, IRSA for pod-level IAM permissions
+
+---
+
+## 4. Technology Stack
+
+```
+APPLICATION
+├── Frontend: React 18, TypeScript, Vite, Recharts
+└── Backend:  Python 3.11, FastAPI, Uvicorn, Pydantic, WebSockets
+
+CONTAINERIZATION
+├── Runtime:        Docker
+├── Registry:       AWS ECR
+└── Orchestration:  Kubernetes (AWS EKS 1.35, t3.small nodes)
+
+AWS SERVICES
+├── Compute:    EKS, EC2
+├── Networking: VPC, ALB, Route53, CloudFront
+├── Storage:    S3, ECR
+├── Security:   ACM, IAM (IRSA), Security Groups
+└── Monitoring: CloudWatch, Container Insights
+
+INFRASTRUCTURE AS CODE  Terraform
+CI/CD                   GitHub Actions (OIDC auth to AWS)
+```
+
+---
+
 ## 5. CI/CD Pipeline
 
-### 5.1 Pipeline Architecture
+### 5.1 Current State
+
+Three `workflow_dispatch` workflows — all triggered manually. No automated CI stage.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            CI/CD PIPELINE (GitHub Actions)                      │
+│                       CI/CD PIPELINE - CURRENT STATE                            │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
-│   ┌─────────┐     ┌─────────────────────────────────────────────────────────┐   │
-│   │  Push   │     │                    CI STAGE                             │   │
-│   │  to     │────▶│                                                         │   │
-│   │  main   │     │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐  │   │
-│   └─────────┘     │  │  Lint   │──▶│  Test   │──▶│  Build  │──▶│  Scan   │  │   │
-│                   │  │         │   │         │   │ Docker  │   │ (Trivy) │  │   │
-│                   │  └─────────┘   └─────────┘   └─────────┘   └─────────┘  │   │
-│                   └──────────────────────────────────────┬──────────────────┘   │
-│                                                          │                      │
-│                                                          ▼                      │
-│                   ┌─────────────────────────────────────────────────────────┐   │
-│                   │                    CD STAGE                             │   │
-│                   │                                                         │   │
-│                   │  ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐  │   │
-│                   │  │  Push   │──▶│ Deploy  │──▶│ Health  │──▶│ Notify  │  │   │
-│                   │  │ to ECR  │   │ to EKS  │   │  Check  │   │ (GitHub)│  │   │
-│                   │  └─────────┘   └─────────┘   └─────────┘   └─────────┘  │   │
-│                   └─────────────────────────────────────────────────────────┘   │
+│   ┌──────────────────┐                                                          │
+│   │ workflow_dispatch │                                                         │
+│   └────────┬─────────┘                                                          │
+│            │                                                                    │
+│            ├──────────────────────────────────────────────────────────────┐     │
+│            │                                                              │     │
+│            ▼                                                              ▼     │
+│   ┌─────────────────────────────────────┐   ┌──────────────────────────────┐    │
+│   │           deploy.yml                │   │      tf-plan-apply.yml       │    │
+│   │                                     │   │                              │    │
+│   │  1. Build + push image to ECR       │   │  job: plan                   │    │
+│   │  2. Install cert-manager            │   │    terraform plan            │    │
+│   │  3. Install ALB controller (Helm)   │   │       │                      │    │
+│   │  4. kubectl apply k8s/              │   │       ▼ (approval gate)      │    │
+│   │  5. kubectl set image + rollout     │   │  job: apply                  │    │
+│   │  6. Poll for ALB hostname           │   │    terraform apply           │    │
+│   │  7. Upsert Route53 CNAME            │   │    auto-update GitHub vars   │    │
+│   │  8. npm build → S3 sync             │   └──────────────────────────────┘    │
+│   │  9. CloudFront invalidation         │                                       │
+│   └─────────────────────────────────────┘   ┌──────────────────────────────┐    │
+│                                             │       tf-destroy.yml         │    │
+│                                             │                              │    │
+│                                             │  job: plan-destroy           │    │
+│                                             │    pre-destroy k8s/ALB       │    │
+│                                             │    terraform plan -destroy   │    │
+│                                             │       │                      │    │
+│                                             │       ▼ (approval gate)      │    │
+│                                             │  job: destroy                │    │
+│                                             │    terraform destroy         │    │
+│                                             │    two-phase IAM teardown    │    │
+│                                             └──────────────────────────────┘    │
+│                                                                                 │
+│  GAPs: No CI stage. No prod approval gate on deploy. No HTTP health check.      │
+│        No GitHub deployment status notification.                                │
 │                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Pipeline Stages
-
-| Stage | Tools | Purpose |
-|-------|-------|---------|
-| Lint | ESLint, Ruff, Prettier | Code quality |
-| Test | Pytest, Vitest | Unit & integration tests |
-| Build | Docker, npm | Create artifacts |
-| Scan | Trivy | Security vulnerability scanning |
-| Push | AWS ECR | Store container images |
-| Deploy | kubectl, Helm | Update Kubernetes resources |
-| Health Check | curl, kubectl | Verify deployment |
-
----
-
-## 6. Implementation Phases
-
-### Phase 2A: Containerization
+### 5.2 Goal State
 
 ```
-├── Backend Dockerfile
-│   ├── Multi-stage build (builder + runtime)
-│   ├── Non-root user
-│   └── Health check endpoint
-├── Frontend Dockerfile (for local dev)
-│   └── nginx-based production build
-├── docker-compose.yml
-│   ├── Backend service
-│   ├── Frontend service (dev)
-│   └── Shared network
-└── Local testing & validation
-```
-
-**Deliverables:**
-- [x] `backend/Dockerfile`
-- [x] `frontend/Dockerfile`
-- [x] `docker-compose.yml`
-- [x] `.dockerignore` files
-
-### Phase 2B: Kubernetes Manifests
-
-```
-├── Kubernetes manifests (k8s/)
-│   ├── namespace.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── ingress.yaml
-│   ├── configmap.yaml
-│   ├── hpa.yaml
-│   └── network-policy.yaml
-└── Local testing with kubectl through docker desktop
-```
-
-**Deliverables:**
-- [x] `k8s/` directory with all manifests
-- [x] Working Local Kubernetes
-
-### Phase 2C: Terraform Infrastructure
-
-```
-├── terraform/
-│   ├── environments/
-│   │   ├── dev/
-│   │   └── prod/
-│   ├── modules/
-│   │   ├── vpc/
-│   │   ├── eks/
-│   │   ├── ecr/
-│   │   ├── s3-cloudfront/
-│   │   ├── alb/
-│   │   └── iam/
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── backend.tf (S3 state)
-├── Implment Helm Charts
-└── Documentation
-```
-
-**Deliverables:**
-- [x] Terraform modules for each component (vpc, iam, eks, ecr, s3-cloudfront, acm, route53)
-- [x] Environment-specific configurations (dev/prod tfvars)
-- [x] Remote state configuration (S3 backend)
-- [x] Custom domain with HTTPS (spacecraft.nodenavi.com / spacecraft-api.nodenavi.com)
-- [x] ACM certificates with DNS validation
-- [x] Environment-aware subdomain logic (dev.spacecraft.* / spacecraft.*)
-
-### Phase 2D: CI/CD Pipeline
-
-```
-├── .github/workflows/
-│   ├── ci.yml (lint, test, build)
-│   ├── cd.yml (deploy to EKS)
-│   └── terraform.yml (IaC changes)
-├── GitHub Environments
-│   ├── dev
-│   └── prod
-└── Secrets configuration
-```
-
-**Deliverables:**
-- [ ] GitHub Actions workflows
-- [ ] Environment protection rules
-- [ ] Deployment documentation
-
-### Phase 2E: Monitoring & Observability
-
-```
-├── CloudWatch configuration
-│   ├── Log groups
-│   ├── Metrics
-│   └── Alarms
-├── Container Insights
-├── Application metrics endpoint (/metrics)
-└── Grafana dashboards (optional)
-```
-
-**Deliverables:**
-- [ ] CloudWatch dashboards
-- [ ] Alert configuration
-- [ ] Runbook documentation
-
----
-
-## 7. Cost Estimation
-
-### 7.1 Monthly Cost Breakdown (Estimated)
-
-| Service | Specification | Est. Monthly Cost |
-|---------|--------------|-------------------|
-| EKS Cluster | Control plane | $72 |
-| EC2 (EKS Nodes) | 2x t3.small | $30 |
-| NAT Gateway | 1x | $32 |
-| ALB | Application LB | $22 |
-| S3 | < 1GB static | $1 |
-| CloudFront | < 100GB transfer | $10 |
-| ECR | < 10GB images | $1 |
-| CloudWatch | Logs & metrics | $15 |
-| Route53 | Hosted zone + queries | $1 |
-| **Total** | | **~$184/month** |
-
-### 7.2 Cost Optimization Options
-
-| Option | Savings | Trade-off |
-|--------|---------|-----------|
-| Spot Instances for nodes | ~30-60% on EC2 | Possible interruptions |
-| Reserved Instances (1yr) | ~30% on EC2 | Commitment |
-
-> **Note:** Single NAT gateway and t3.small nodes are already applied as the baseline configuration.
-
-**Development/Demo Configuration:** ~$110/month (spin up on demand, destroy when not demoing)
-
----
-
-## 8. Disaster Recovery & High Availability
-
-### 8.1 Availability Design
-
-| Component | HA Strategy | RPO | RTO |
-|-----------|-------------|-----|-----|
-| EKS Control Plane | AWS-managed, Multi-AZ | N/A | N/A |
-| Worker Nodes | Multi-AZ node group | 0 | < 5 min |
-| ALB | Multi-AZ by default | N/A | N/A |
-| S3 | 99.999999999% durability | 0 | 0 |
-| RDS (Phase 3) | Multi-AZ standby | < 5 min | < 5 min |
-
-### 8.2 Backup Strategy
-
-| Resource | Backup Method | Retention |
-|----------|---------------|-----------|
-| S3 Objects | Versioning enabled | 30 days |
-| RDS | Automated snapshots | 7 days |
-| EKS Config | GitOps (manifests in repo) | Indefinite |
-| Terraform State | S3 versioning | 30 days |
-
----
-
-## 9. Technology Stack Summary
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           TECHNOLOGY STACK                                  │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  APPLICATION                                                                │
-│  ├── Frontend: React 18, TypeScript, Vite, Recharts                         │
-│  └── Backend: Python 3.11, FastAPI, Uvicorn, Pydantic, WebSockets           │
-│                                                                             │
-│  CONTAINERIZATION                                                           │
-│  ├── Runtime: Docker                                                        │
-│  ├── Registry: AWS ECR                                                      │
-│  └── Orchestration: Kubernetes (AWS EKS)                                    │
-│                                                                             │
-│  AWS SERVICES                                                               │
-│  ├── Compute: EKS, EC2                                                      │
-│  ├── Networking: VPC, ALB, Route53, CloudFront                              │
-│  ├── Storage: S3, ECR                                                       │
-│  ├── Database: RDS PostgreSQL (Phase 3)                                     │
-│  ├── Security: ACM, IAM, Secrets Manager, Security Groups                   │
-│  └── Monitoring: CloudWatch, Container Insights                             │
-│                                                                             │
-│  INFRASTRUCTURE AS CODE                                                     │
-│  └── Terraform                                                              │
-│                                                                             │
-│  CI/CD                                                                      │
-│  └── GitHub Actions                                                         │
-│                                                                             │
-│  SECURITY SCANNING                                                          │
-│  └── Trivy (container vulnerability scanning)                               │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                           CI/CD PIPELINE - GOAL STATE                               │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                     │
+│   ┌─────────┐     ┌──────────────────────────────────────────────────────────────┐  │
+│   │  Push   │     │                  ci.yml [TODO]                               │  │
+│   │  to     │────▶│                                                              │  │
+│   │  main   │     │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐      │  │
+│   └─────────┘     │  │     Lint     │──▶│     Test     │──▶│ Scan (Trivy) │      │  │
+│                   │  │ ESLint, Ruff │   │Pytest, Vitest│   │ build+scan,  │      │  │
+│                   │  │   Prettier   │   │              │   │  no push     │      │  │
+│                   │  └──────────────┘   └──────────────┘   └──────────────┘      │  │
+│                   └──────────────────────────────────────────┬───────────────────┘  │
+│                                                              │ CI must pass [TODO]  │
+│              ┌───────────────────────────────────────────────┤                      │
+│              │                                               │                      │
+│              ▼                                               ▼                      │
+│   ┌────────────────────────────┐     ┌──────────────────────────────────────────┐   │
+│   │    tf-plan-apply.yml       │     │             deploy.yml [PARTIAL]         │   │
+│   │                            │     │                                          │   │
+│   │  job: plan                 │     │  job: deploy (prod approval gate [TODO]) │   │
+│   │    terraform plan          │     │    1. Build + push image to ECR          │   │
+│   │       │                    │     │    2. Install cert-manager               │   │
+│   │       ▼ (approval gate)    │     │    3. Install ALB controller (Helm)      │   │
+│   │  job: apply                │     │    4. kubectl apply k8s/                 │   │
+│   │    terraform apply         │     │    5. kubectl set image + rollout        │   │
+│   │    auto-update GitHub vars │     │    6. Poll ALB hostname                  │   │
+│   └────────────────────────────┘     │    7. Upsert Route53 CNAME               │   │
+│                                      │    8. npm build → S3 sync                │   │
+│   ┌────────────────────────────┐     │    9. CloudFront invalidation            │   │
+│   │     tf-destroy.yml         │     │   10. HTTP health check [TODO]           │   │
+│   │                            │     │   11. GitHub deploy notification [TODO]  │   │
+│   │  job: plan-destroy         │     └──────────────────────────────────────────┘   │
+│   │    pre-destroy k8s/ALB     │                                                    │
+│   │    terraform plan -destroy │                                                    │
+│   │       │                    │                                                    │
+│   │       ▼ (approval gate)    │                                                    │
+│   │  job: destroy              │                                                    │
+│   │    terraform destroy       │                                                    │
+│   │    two-phase IAM teardown  │                                                    │
+│   └────────────────────────────┘                                                    │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 10. Repository Structure (Target)
+## 6. How to Operate
 
+### Bootstrap (first time — run locally)
+The IAM role doesn't exist yet so the pipeline can't authenticate. Run Terraform locally first:
+```bash
+cd terraform/environments/dev
+terraform init
+terraform apply
 ```
-SpacecraftTelemetry/
-├── backend/
-│   ├── app/
-│   ├── tests/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── .dockerignore
-├── frontend/
-│   ├── src/
-│   ├── Dockerfile
-│   ├── nginx.conf
-│   └── .dockerignore
-├── k8s/
-│   ├── base/
-│   │   ├── namespace.yaml
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   ├── ingress.yaml
-│   │   ├── configmap.yaml
-│   │   └── hpa.yaml
-│   └── overlays/
-│       ├── dev/
-│       └── prod/
-├── terraform/
-│   ├── modules/
-│   │   ├── vpc/
-│   │   ├── eks/
-│   │   ├── ecr/
-│   │   ├── s3-cloudfront/
-│   │   └── iam/
-│   ├── environments/
-│   │   ├── dev/
-│   │   └── prod/
-│   └── backend.tf
-├── .github/
-│   └── workflows/
-│       ├── ci.yml
-│       ├── cd.yml
-│       └── terraform.yml
-├── docs/
-│   └── AWS_ARCHITECTURE.md
-├── docker-compose.yml
-└── README.md
+After apply, manually set `ROUTE53_HOSTED_ZONE_ID` in GitHub env vars (stable, only needed once). All other vars are auto-updated by `tf-plan-apply.yml`.
+
+### Deploy
+Trigger `deploy.yml` via GitHub Actions → `workflow_dispatch`. Builds and deploys the backend to EKS and syncs the frontend to S3 in a single run.
+
+### Terraform changes
+Trigger `tf-plan-apply.yml` → review the plan job output → approve to apply. Pipeline auto-updates `VPC_ID`, `ACM_CERTIFICATE_ARN`, `CLOUDFRONT_DISTRIBUTION_ID` in GitHub env vars after apply.
+
+### Tear down
+Trigger `tf-destroy.yml` → approve. Pipeline handles pre-destroy of k8s/ALB resources and two-phase IAM teardown — IAM roles are deleted last to avoid invalidating the pipeline's own credentials mid-run.
+
+### Stale Terraform lock
+If a pipeline run fails mid-apply, the DynamoDB lock may be left behind:
+```bash
+terraform force-unlock -force <lock-id>
 ```
 
 ---
 
-## 11. Decision Log
+## 7. Decision Log
 
 | Decision | Options Considered | Choice | Rationale |
-|----------|-------------------|--------|-----------|
+|----------|--------------------|--------|-----------|
 | Container Orchestration | ECS Fargate, EKS, Raw EC2 | EKS with EC2 nodes | Demonstrates both Kubernetes and EC2 experience |
 | Frontend Hosting | Containerized, S3+CloudFront | S3+CloudFront | Cost-effective, faster, industry standard for SPAs |
-| Load Balancer | ALB, NLB, API Gateway | ALB | Native WebSocket support, integrates with EKS |
+| Load Balancer | ALB, NLB, API Gateway | ALB | Native WebSocket support, integrates with EKS ingress controller |
 | SSL Certificates | Let's Encrypt, ACM | ACM | Free, auto-renewal, native AWS integration |
 | CI/CD | Jenkins, GitLab CI, GitHub Actions | GitHub Actions | Already using GitHub, good AWS integration |
-| IaC | CloudFormation, Terraform, Pulumi | Terraform | Industry standard, multi-cloud skills |
+| IaC | CloudFormation, Terraform, Pulumi | Terraform | Industry standard, multi-cloud transferable skills |
 | Backend DNS | Terraform-managed, Pipeline-managed | Pipeline-managed | ALB is provisioned by k8s Load Balancer Controller after terraform apply — pipeline owns the correct ordering |
-| Subdomain structure | base domain, suffix per env, prefix per env | Environment prefix (dev.spacecraft.*) | Prefix scales cleanly as more subdomains are added — avoids awkward middle-of-name env suffixes |
-| WebSocket/API routing | All traffic through CloudFront, Split DNS | Split DNS (CloudFront for frontend, ALB direct for backend) | CloudFront does not reliably support WebSocket connections; ALB is the correct termination point |
+| Subdomain structure | Base domain, suffix per env, prefix per env | Environment prefix (`dev.spacecraft.*`) | Prefix scales cleanly as more subdomains are added |
+| WebSocket/API routing | All traffic through CloudFront, Split DNS | Split DNS | CloudFront does not reliably support WebSocket connections; ALB is the correct termination point |
+| NAT Gateway count | 1 per AZ (HA), 1 total (cost) | 1 total | Cost optimized for dev/demo — single AZ failure risk accepted |
 
 ---
-
-## 12. References
-
-- [AWS EKS Best Practices Guide](https://aws.github.io/aws-eks-best-practices/)
-- [Terraform AWS Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-- [Kubernetes Documentation](https://kubernetes.io/docs/)
-- [FastAPI Deployment Guide](https://fastapi.tiangolo.com/deployment/)
-
----
-
-## Appendix A: Glossary
-
-| Term | Definition |
-|------|------------|
-| EKS | Elastic Kubernetes Service - AWS managed Kubernetes |
-| ECR | Elastic Container Registry - Docker image storage |
-| ALB | Application Load Balancer - Layer 7 load balancer |
-| ACM | AWS Certificate Manager - SSL/TLS certificate service |
-| VPC | Virtual Private Cloud - Isolated network |
-| IRSA | IAM Roles for Service Accounts - Pod-level AWS permissions |
-| HPA | Horizontal Pod Autoscaler - Kubernetes auto-scaling |

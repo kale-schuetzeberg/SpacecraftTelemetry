@@ -50,7 +50,7 @@
   gap: 8px;
   padding-left: 12px;
   border-left: 1px solid #2a3f5f;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
 }
 
@@ -76,7 +76,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
-import type {Telemetry, TelemetryEnvelope} from '../types/telemetry';
+import { useEffect, useState, useRef } from "react";
+import type { Telemetry, TelemetryEnvelope } from "../types/telemetry";
 
-const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL ?? 'ws://localhost:8000/ws/telemetry';
+const WEBSOCKET_URL =
+  import.meta.env.VITE_WEBSOCKET_URL ?? "ws://localhost:8000/ws/telemetry";
 const RECONNECT_INTERVAL = 3000;
 const TELEMETRY_HISTORY_SIZE = 100;
 
@@ -32,7 +33,7 @@ export function useWebSocket() {
 
     // Event: connection opened
     ws.current.onopen = () => {
-      console.log('Connected to spacecraft telemetry stream');
+      console.log("Connected to spacecraft telemetry stream");
       setIsConnected(true);
 
       // Clear any reconnection timer
@@ -57,7 +58,7 @@ export function useWebSocket() {
           const expectedSeq = lastSequence + 1;
           if (envelope.sequence_number !== expectedSeq) {
             const lost = envelope.sequence_number - expectedSeq;
-            setPacketsLost(prev => prev + lost);
+            setPacketsLost((prev) => prev + lost);
             console.warn(`Packet loss detected: ${lost} packets missing`);
           }
         }
@@ -75,16 +76,14 @@ export function useWebSocket() {
           }
           return newHistory;
         });
-
       } catch (error) {
-        console.error('Failed to parse telemetry:', error);
+        console.error("Failed to parse telemetry:", error);
       }
     };
 
-
     // Event: connection closed
     ws.current.onclose = () => {
-      console.warn('Connection lost. Reconnecting...');
+      console.warn("Connection lost. Reconnecting...");
       setIsConnected(false);
 
       // Schedule reconnection
@@ -95,7 +94,7 @@ export function useWebSocket() {
 
     // Event: error occurred
     ws.current.onerror = (error) => {
-      console.error('WebSocket connection error:', error);
+      console.error("WebSocket connection error:", error);
     };
   };
 

@@ -4,7 +4,9 @@
   border-radius: 8px;
   padding: 20px;
   text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .telemetry-card:hover {
@@ -24,7 +26,7 @@
   font-size: 36px;
   font-weight: bold;
   color: #00d9ff;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .card-unit {
