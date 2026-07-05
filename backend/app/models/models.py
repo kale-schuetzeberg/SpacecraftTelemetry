@@ -51,7 +51,7 @@ class WarningType(str, Enum):
     LOW_BATTERY = "low_battery"
 
 
-class Status(BaseModel):
+class MissionState(BaseModel):
     system_status: SystemStatus  # nominal, warning, critical, offline
     active_warnings: set[WarningType]  # low_fuel, high_temp, sensor_fault
     mission_time_s: float  # time
@@ -64,7 +64,7 @@ class Telemetry(BaseModel):
     power_system: PowerSystem
     thermal: Thermal
     attitude: Attitude
-    status: Status
+    mission_state: MissionState
 
 
 SourceType = Literal["simulator", "rocket"]

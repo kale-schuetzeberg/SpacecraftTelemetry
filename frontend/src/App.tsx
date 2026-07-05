@@ -25,8 +25,8 @@ function App() {
             ) : (
                 <>
                     <StatusBanner
-                        status={telemetry.status.system_status}
-                        missionTime={telemetry.status.mission_time_s}
+                        status={telemetry.mission_state.system_status}
+                        missionTime={telemetry.mission_state.mission_time_s}
                     />
 
                     <TelemetryCardsGrid telemetry={telemetry}/>

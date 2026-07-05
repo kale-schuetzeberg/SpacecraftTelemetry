@@ -31,20 +31,20 @@ export interface Attitude {
 
 export type SystemStatus = 'nominal' | 'warning' | 'critical' | 'offline';
 
-export interface Status {
+export interface MissionState {
     system_status: SystemStatus;
     active_warnings: string[];
     mission_time_s: number;
 }
 
 export interface Telemetry {
-    timestamp: string;
+    recorded_at: string;
     position: Position;
     velocity: Velocity;
     power_system: PowerSystem;
     thermal: Thermal;
     attitude: Attitude;
-    status: Status;
+    mission_state: MissionState;
 }
 
 export interface TelemetryEnvelope {

@@ -5,7 +5,7 @@ from app.models.models import (
     Attitude,
     Position,
     PowerSystem,
-    Status,
+    MissionState,
     SystemStatus,
     Telemetry,
     Thermal,
@@ -235,7 +235,7 @@ class Simulator:
             attitude=Attitude(
                 pitch_deg=self.pitch_deg, roll_deg=self.roll_deg, yaw_deg=self.yaw_deg
             ),
-            status=Status(
+            mission_state=MissionState(
                 system_status=self.get_system_status(),
                 active_warnings=self.active_warnings.copy(),
                 mission_time_s=self.mission_time_s,

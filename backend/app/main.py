@@ -12,6 +12,7 @@ from app.database.queries import (
     insert_status,
     insert_thermal_state,
     insert_warning,
+    update_warning_resolved_at,
     retrieve_satellite,
     seed_satellite,
 )
@@ -56,17 +57,24 @@ async def run_simulator():
             telemetry.attitude.roll_deg,
             telemetry.attitude.yaw_deg,
         )
-        if previous_status != telemetry.status.system_status:
-            previous_status = telemetry.status.system_status
+        if previous_status != telemetry.mission_state.system_status:
+            previous_status = telemetry.mission_state.system_status
             await insert_status(
                 satellite_id,
-                telemetry.status.system_status,
+                telemetry.mission_state.system_status,
             )
-        if telemetry.status.active_warnings != warnings:
-            new_warnings = telemetry.status.active_warnings.difference(warnings)
-            warnings = telemetry.status.active_warnings
+        if telemetry.mission_state.active_warnings != warnings:
+            new_warnings = telemetry.mission_state.active_warnings.difference(warnings)
+            dropped_warnings = warnings.difference(
+                telemetry.mission_state.active_warnings
+            )
+            warnings = telemetry.mission_state.active_warnings
+            # Add new warnings
             for warning in new_warnings:
                 await insert_warning(satellite_id, warning)
+            # Resolve dropped warnings
+            for warning in dropped_warnings:
+                await update_warning_resolved_at(satellite_id, warning)
         await sleep(1.0)
 
 
