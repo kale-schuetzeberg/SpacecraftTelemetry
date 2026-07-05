@@ -13,11 +13,13 @@ from app.database.queries import (
 from app.models.models import TelemetryEnvelope
 from app.simulator.simulator import Simulator
 
+SATELLITE_NAME = "theodore"
+
 simulator = Simulator()
 
 
 async def run_simulator():
-    record = await retrieve_satellite("theodore")
+    record = await retrieve_satellite(SATELLITE_NAME)
     telemetry_persistor = TelemetryPersister(record["id"])
     while True:
         simulator.update(60)
@@ -28,7 +30,7 @@ async def run_simulator():
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await init_pool()
-    await seed_satellite("theodore")
+    await seed_satellite(SATELLITE_NAME)
     task = create_task(run_simulator())
     yield
     task.cancel()
