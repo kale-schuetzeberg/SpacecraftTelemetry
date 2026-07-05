@@ -53,7 +53,7 @@ async def insert_orbital_state(
         )
 
 
-async def insert_power_system(
+async def insert_power_system_state(
     satellite_id: UUID,
     battery_level_pct: float,
     solar_input_w: float,
@@ -72,7 +72,7 @@ async def insert_power_system(
         )
 
 
-async def insert_thermal(
+async def insert_thermal_state(
     satellite_id: UUID,
     temp_battery_c: float,
     temp_solar_panels_c: float,
@@ -93,7 +93,7 @@ async def insert_thermal(
         )
 
 
-async def insert_attitude(
+async def insert_attitude_state(
     satellite_id: UUID, pitch_deg: float, roll_deg: float, yaw_deg: float
 ) -> None:
     """Insert an attitude state for a satellite."""

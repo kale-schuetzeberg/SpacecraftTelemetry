@@ -6,11 +6,11 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from app.database.connection import close_pool, init_pool
 from app.database.queries import (
-    insert_attitude,
+    insert_attitude_state,
     insert_orbital_state,
-    insert_power_system,
+    insert_power_system_state,
     insert_status,
-    insert_thermal,
+    insert_thermal_state,
     insert_warning,
     retrieve_satellite,
     seed_satellite,
@@ -37,20 +37,20 @@ async def run_simulator():
             telemetry.velocity.orbital_velocity_km_per_s,
             telemetry.velocity.ground_track_velocity_km_per_s,
         )
-        await insert_power_system(
+        await insert_power_system_state(
             satellite_id,
             telemetry.power_system.battery_level_pct,
             telemetry.power_system.solar_input_w,
             telemetry.power_system.power_draw_w,
         )
-        await insert_thermal(
+        await insert_thermal_state(
             satellite_id,
             telemetry.thermal.temp_battery_c,
             telemetry.thermal.temp_solar_panels_c,
             telemetry.thermal.temp_electronics_c,
             telemetry.thermal.temp_exterior_c,
         )
-        await insert_attitude(
+        await insert_attitude_state(
             satellite_id,
             telemetry.attitude.pitch_deg,
             telemetry.attitude.roll_deg,
