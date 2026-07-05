@@ -1,0 +1,46 @@
+# Database Design
+
+## 
+
+Shared table + satellite_id                                                                                                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                                                                                                             
+  Pros:                                                                                                                                                                                                                                                                                                                                                                                      
+  - Simple to implement and reason about                                                                                                                                                                                                                                                                                                                                                     
+  - One migration for all satellites                                                                                                                                                                                                                                                                                                                                                         
+  - Cross-satellite queries are just a WHERE clause, no joins across schemas                                                                                                                                                                                                                                                                                                                
+  - Compound index on (satellite_id, timestamp) makes per-satellite time range queries fast                                                                                                                                                                                                                                                                                                  
+  - TimescaleDB hypertable partitions by time automatically on top of this                                                                                                                                                                                                                                                                                                                   
+  - Standard pattern, well documented, well understood                                                                                                                                                                                                                                                                                                                                      
+                                                                                                                                                                                                                                                                                                                                                                                             
+  Cons:                                                                                                                                                                                                                                                                                                                                                                                      
+  - Table grows extremely large at scale (mitigated by TimescaleDB chunking)                                                                                                                                                                                                                                                                                                                      
+  - No hard data isolation, a bug could theoretically affect all satellites                                                                                                                                                                                                                                                                                                                 
+  - At extreme scale (thousands of satellites, billions of rows per day) you'd eventually hit limits, but this is a different class of problem requiring a different class of tool                                                                                                                                                                                                           
+                                                                                                                                                                                                                                                                                                                                                                                             
+  Why it's the right choice for you:                                                                                                                                                                                                                                                                                                                                                         
+  - You have one satellite now, maybe 10-20 in the future as a learning project                                                                                                                                                                                                                                                                                                              
+  - You have no compliance or isolation requirements                                                                                                                                                                                                                                                                                                                                         
+  - The compound index + TimescaleDB chunking together handle the performance concern                                                                                                                                                                                                                                                                                                        
+  - You want to learn databases, not database administration                                                                                                                                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                                                                                                                                                                             
+  Decision locked: shared table, table-per-subsystem, satellite_id column, compound index on (satellite_id, timestamp).
+  
+
+## Schema Design
+### Definition: The overall structure of the tables, columns, and their relationships.
+- Shared table
+- One table per subsystem
+
+## Date Modeling
+### Definition: How to represent the real world data in a database.
+- Tenancy model: shared table (one set of tables for all satellites, distinguished by satellite_id)
+- Satellite is modeled as its own entity (satellites table)                                                                                                                                                                                                                                                                                                                                
+- satellite_id foreign key in every subsystem table ties telemetry to a specific satellite
+
+## Partitioning strategy
+### Definition: How to physically divide the data.
+- TimescaleDB hypertable partitions by time
+
+## Indexing strategy
+### Definition: How to make your queries fast.
+- Compound index on (satellite_id, timestamp)

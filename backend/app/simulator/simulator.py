@@ -1,16 +1,16 @@
-from math import sin, cos, pi
 from datetime import datetime, timezone
+from math import cos, pi, sin
 
 from app.models.models import (
-    Position,
-    Velocity,
-    PowerSystem,
-    Thermal,
     Attitude,
-    SystemStatus,
-    WarningType,
+    Position,
+    PowerSystem,
     Status,
-    Telemetry
+    SystemStatus,
+    Telemetry,
+    Thermal,
+    Velocity,
+    WarningType,
 )
 
 # Constants
@@ -18,15 +18,16 @@ EARTH_RADIUS_KM = 6371
 ORBITAL_ALTITUDE_KM = 350
 ORBITAL_PERIOD_MIN = 90
 ORBITAL_PERIOD_S = ORBITAL_PERIOD_MIN * 60
-ORBITAL_INCLINATION_DEG = 137 # Retrograde; Firefly Alpha Flight 2 - To The Black
+ORBITAL_INCLINATION_DEG = 137  # Retrograde; Firefly Alpha Flight 2 - To The Black
 INITIAL_LATITUDE_DEG = 0.0
 # INITIAL_LATITUDE_DEG = 34.75 # Vandenberg Air Force Base
 INITIAL_LONGITUDE_DEG = 0.0
 # INITIAL_LONGITUDE_DEG = -120.52 # Vandenberg Air Force Base
 
+
 class Simulator:
     """
-        Spacecraft simulator using a simple internal state.
+    Spacecraft simulator using a simple internal state.
     """
 
     def __init__(self):
@@ -155,7 +156,6 @@ class Simulator:
         self.temp_exterior_c = max(-150.0, min(150.0, self.temp_exterior_c))
         self.temp_battery_c = max(-20.0, min(60.0, self.temp_battery_c))
 
-
         # ================================================================================
         # Update Attitude
         # ================================================================================
@@ -173,16 +173,16 @@ class Simulator:
         # ================================================================================
 
         # Update Warnings
-        self.active_warnings = []
+        self.active_warnings = set()
 
         if self.battery_level_pct < 20:
-            self.active_warnings.append(WarningType.LOW_BATTERY)
+            self.active_warnings.add(WarningType.LOW_BATTERY)
 
         if self.temp_electronics_c > 45:
-            self.active_warnings.append(WarningType.HIGH_TEMP)
+            self.active_warnings.add(WarningType.HIGH_TEMP)
 
         if self.altitude_km < 320:
-            self.active_warnings.append(WarningType.LOW_ALTITUDE)
+            self.active_warnings.add(WarningType.LOW_ALTITUDE)
 
     def get_system_status(self) -> SystemStatus:
         """Determine overall system status based on warnings"""
@@ -214,32 +214,30 @@ class Simulator:
             position=Position(
                 altitude_km=self.altitude_km,
                 latitude_deg=self.latitude_deg,
-                longitude_deg=self.longitude_deg
+                longitude_deg=self.longitude_deg,
             ),
             velocity=Velocity(
                 orbital_velocity_km_per_s=self.orbital_velocity_km_per_s,
-                ground_track_velocity_km_per_s=self.ground_track_velocity_km_per_s
+                ground_track_velocity_km_per_s=self.ground_track_velocity_km_per_s,
             ),
             power_system=PowerSystem(
                 battery_level_pct=self.battery_level_pct,
                 solar_input_w=self.solar_input_w,
                 power_draw_w=self.power_draw_w,
-                net_power_w=self.solar_input_w - self.power_draw_w
+                net_power_w=self.solar_input_w - self.power_draw_w,
             ),
             thermal=Thermal(
                 temp_battery_c=self.temp_battery_c,
                 temp_solar_panels_c=self.temp_solar_panels_c,
                 temp_electronics_c=self.temp_electronics_c,
-                temp_exterior_c=self.temp_exterior_c
+                temp_exterior_c=self.temp_exterior_c,
             ),
             attitude=Attitude(
-                pitch_deg=self.pitch_deg,
-                roll_deg=self.roll_deg,
-                yaw_deg=self.yaw_deg
+                pitch_deg=self.pitch_deg, roll_deg=self.roll_deg, yaw_deg=self.yaw_deg
             ),
             status=Status(
                 system_status=self.get_system_status(),
                 active_warnings=self.active_warnings.copy(),
-                mission_time_s=self.mission_time_s
-            )
+                mission_time_s=self.mission_time_s,
+            ),
         )
