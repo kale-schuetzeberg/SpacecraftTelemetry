@@ -48,3 +48,6 @@ tfplan-destroy
 tfplan-destroy.txt
 tfplan-bootstrap
 tfplan-bootstrap.txt
+
+# Docker
+.env

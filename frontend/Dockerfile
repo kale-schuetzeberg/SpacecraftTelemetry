@@ -13,6 +13,8 @@ COPY ["./package.json", "./package-lock.json", "./"]
 RUN npm install
 # Copy source code
 COPY . .
+# Declare websocket url arg
+ARG VITE_WEBSOCKET_URL
 # Run build command (hint: npm run build)
 RUN npm run build
 
