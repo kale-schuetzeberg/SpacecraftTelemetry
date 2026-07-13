@@ -32,6 +32,7 @@ class Simulator:
 
     def __init__(self):
         # Position
+        self.recorded_at = datetime.now(timezone.utc)
         self.altitude_km = ORBITAL_ALTITUDE_KM
         self.latitude_deg = 0.0
         self.longitude_deg = 0.0
@@ -75,6 +76,7 @@ class Simulator:
         Update spacecraft state based on physics simulation.
         """
         # Update Mission Time
+        self.recorded_at = datetime.now(timezone.utc)
         self.mission_time_s += delta_time_s
 
         # ================================================================================
@@ -210,7 +212,7 @@ class Simulator:
         # Build Telemetry Object from Internal State
         # ================================================================================
         return Telemetry(
-            timestamp=datetime.now(timezone.utc),
+            recorded_at=self.recorded_at,
             position=Position(
                 altitude_km=self.altitude_km,
                 latitude_deg=self.latitude_deg,

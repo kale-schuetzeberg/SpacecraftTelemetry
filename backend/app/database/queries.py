@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import UUID
 
 from app.models.models import SystemStatus, WarningType
@@ -32,6 +33,7 @@ async def retrieve_satellite(name: str) -> dict:
 
 async def insert_orbital_state(
     satellite_id: UUID,
+    recorded_at: datetime,
     altitude_km: float,
     latitude_deg: float,
     longitude_deg: float,
@@ -43,8 +45,9 @@ async def insert_orbital_state(
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO orbital_states (satellite_id, recorded_at, altitude_km, latitude_deg, longitude_deg, orbital_velocity_km_per_s, ground_track_velocity_km_per_s) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5, $6)",
+            "VALUES ($1, $2, $3, $4, $5, $6, $7)",
             satellite_id,
+            recorded_at,
             altitude_km,
             latitude_deg,
             longitude_deg,
@@ -55,6 +58,7 @@ async def insert_orbital_state(
 
 async def insert_power_system_state(
     satellite_id: UUID,
+    recorded_at: datetime,
     battery_level_pct: float,
     solar_input_w: float,
     power_draw_w: float,
@@ -64,8 +68,9 @@ async def insert_power_system_state(
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO power_systems (satellite_id, recorded_at, battery_level_pct, solar_input_w, power_draw_w) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4)",
+            "VALUES ($1, $2, $3, $4, $5)",
             satellite_id,
+            recorded_at,
             battery_level_pct,
             solar_input_w,
             power_draw_w,
@@ -74,6 +79,7 @@ async def insert_power_system_state(
 
 async def insert_thermal_state(
     satellite_id: UUID,
+    recorded_at: datetime,
     temp_battery_c: float,
     temp_solar_panels_c: float,
     temp_electronics_c: float,
@@ -84,8 +90,9 @@ async def insert_thermal_state(
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO thermals (satellite_id, recorded_at, temp_battery_c, temp_solar_panels_c, temp_electronics_c, temp_exterior_c) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4, $5)",
+            "VALUES ($1, $2, $3, $4, $5, $6)",
             satellite_id,
+            recorded_at,
             temp_battery_c,
             temp_solar_panels_c,
             temp_electronics_c,
@@ -94,51 +101,65 @@ async def insert_thermal_state(
 
 
 async def insert_attitude_state(
-    satellite_id: UUID, pitch_deg: float, roll_deg: float, yaw_deg: float
+    satellite_id: UUID,
+    recorded_at: datetime,
+    pitch_deg: float,
+    roll_deg: float,
+    yaw_deg: float,
 ) -> None:
     """Insert an attitude state for a satellite."""
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO attitudes (satellite_id, recorded_at, pitch_deg, roll_deg, yaw_deg) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2, $3, $4)",
+            "VALUES ($1, $2, $3, $4, $5)",
             satellite_id,
+            recorded_at,
             pitch_deg,
             roll_deg,
             yaw_deg,
         )
 
 
-async def insert_status(satellite_id: UUID, system_status: SystemStatus) -> None:
+async def insert_status(
+    satellite_id: UUID, recorded_at: datetime, system_status: SystemStatus
+) -> None:
     """Insert a status state for a satellite."""
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO statuses (satellite_id, recorded_at, system_status) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2)",
+            "VALUES ($1, $2, $3)",
             satellite_id,
+            recorded_at,
             system_status,
         )
 
 
-async def insert_warning(satellite_id: UUID, warning: WarningType) -> None:
+async def insert_warning(
+    satellite_id: UUID, recorded_at: datetime, warning: WarningType
+) -> None:
     """Insert a warning state for a satellite."""
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "INSERT INTO warnings (satellite_id, recorded_at, warning) "
-            "VALUES ($1, CURRENT_TIMESTAMP, $2)",
+            "VALUES ($1, $2, $3)",
             satellite_id,
+            recorded_at,
             warning,
         )
 
 
-async def update_warning_resolved_at(satellite_id: UUID, warning: WarningType) -> None:
+async def update_warning_resolved_at(
+    satellite_id: UUID, resolved_at: datetime, warning: WarningType
+) -> None:
     """Update a warning resolved_at timestamp."""
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
-            "UPDATE warnings SET resolved_at = CURRENT_TIMESTAMP WHERE satellite_id = $1 AND warning = $2 AND resolved_at IS NULL",
+            "UPDATE warnings SET resolved_at = $2 WHERE satellite_id = $1 AND warning = $3 AND resolved_at IS NULL",
             satellite_id,
+            resolved_at,
             warning,
         )

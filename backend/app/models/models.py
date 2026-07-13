@@ -58,7 +58,7 @@ class MissionState(BaseModel):
 
 
 class Telemetry(BaseModel):
-    timestamp: datetime
+    recorded_at: datetime
     position: Position
     velocity: Velocity
     power_system: PowerSystem

@@ -26,6 +26,7 @@ class TelemetryPersister:
     async def persist_telemetry(self, telemetry: Telemetry) -> None:
         await insert_orbital_state(
             self.satellite_id,
+            telemetry.recorded_at,
             telemetry.position.altitude_km,
             telemetry.position.latitude_deg,
             telemetry.position.longitude_deg,
@@ -34,12 +35,14 @@ class TelemetryPersister:
         )
         await insert_power_system_state(
             self.satellite_id,
+            telemetry.recorded_at,
             telemetry.power_system.battery_level_pct,
             telemetry.power_system.solar_input_w,
             telemetry.power_system.power_draw_w,
         )
         await insert_thermal_state(
             self.satellite_id,
+            telemetry.recorded_at,
             telemetry.thermal.temp_battery_c,
             telemetry.thermal.temp_solar_panels_c,
             telemetry.thermal.temp_electronics_c,
@@ -47,6 +50,7 @@ class TelemetryPersister:
         )
         await insert_attitude_state(
             self.satellite_id,
+            telemetry.recorded_at,
             telemetry.attitude.pitch_deg,
             telemetry.attitude.roll_deg,
             telemetry.attitude.yaw_deg,
@@ -55,6 +59,7 @@ class TelemetryPersister:
             self.previous_status = telemetry.mission_state.system_status
             await insert_status(
                 self.satellite_id,
+                telemetry.recorded_at,
                 telemetry.mission_state.system_status,
             )
         if telemetry.mission_state.active_warnings != self.warnings:
@@ -67,7 +72,9 @@ class TelemetryPersister:
             self.warnings = telemetry.mission_state.active_warnings
             # Add new warnings
             for warning in new_warnings:
-                await insert_warning(self.satellite_id, warning)
+                await insert_warning(self.satellite_id, telemetry.recorded_at, warning)
             # Resolve dropped warnings
             for warning in dropped_warnings:
-                await update_warning_resolved_at(self.satellite_id, warning)
+                await update_warning_resolved_at(
+                    self.satellite_id, telemetry.recorded_at, warning
+                )
