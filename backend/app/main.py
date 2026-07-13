@@ -7,7 +7,7 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from app.services.telemetry_service import TelemetryPersister
 from app.database.connection import close_pool, init_pool
 from app.database.queries import (
-    retrieve_satellite,
+    retrieve_satellite_id,
     seed_satellite,
 )
 from app.models.models import TelemetryEnvelope
@@ -19,7 +19,7 @@ simulator = Simulator()
 
 
 async def run_simulator():
-    record = await retrieve_satellite(SATELLITE_NAME)
+    record = await retrieve_satellite_id(SATELLITE_NAME)
     telemetry_persistor = TelemetryPersister(record["id"])
     while True:
         simulator.update(60)

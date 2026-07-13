@@ -1,12 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
+from asyncpg import Record
+
 from app.models.models import SystemStatus, WarningType
 
 from .connection import get_pool
 
 
-async def seed_satellite(name: str) -> dict:
+async def seed_satellite(name: str) -> Record | None:
     """Insert or retrieve a satellite by name."""
     pool = get_pool()
     # borrow a connection, call it conn, and give it back when done
@@ -21,14 +23,103 @@ async def seed_satellite(name: str) -> dict:
         return row
 
 
-async def retrieve_satellite(name: str) -> dict:
-    """Get a satellite by name."""
+async def retrieve_satellite_id(name: str) -> Record | None:
+    """Get a satellite by satellite_name."""
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             "SELECT id FROM satellites WHERE satellite_name = $1", name
         )
         return row
+
+
+async def satellite_exists(satellite_id: UUID) -> bool:
+    """Determine if a satellite exists by satellite_id."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM satellites WHERE id = $1)", satellite_id
+        )
+
+
+async def retrieve_satellites() -> list[Record]:
+    """Retrieve all satellites."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT id, satellite_name FROM satellites")
+        return rows
+
+
+async def retrieve_attitude_states(
+    satellite_id: UUID, start_datetime: datetime, end_datetime: datetime
+) -> list[Record]:
+    """Retrieve all attitude states for a satellite within a given time range."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT recorded_at, pitch_deg, roll_deg, yaw_deg "
+            "FROM attitudes "
+            "WHERE satellite_id = $1 AND recorded_at >= $2 AND recorded_at < $3 "
+            "ORDER BY recorded_at ASC",
+            satellite_id,
+            start_datetime,
+            end_datetime,
+        )
+        return rows
+
+
+async def retrieve_orbital_states(
+    satellite_id: UUID, start_datetime: datetime, end_datetime: datetime
+) -> list[Record]:
+    """Retrieve all orbital states for a satellite within a given time range."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT recorded_at, altitude_km, latitude_deg, longitude_deg, orbital_velocity_km_per_s, ground_track_velocity_km_per_s "
+            "FROM orbital_states "
+            "WHERE satellite_id = $1 AND recorded_at >= $2 AND recorded_at < $3 "
+            "ORDER BY recorded_at ASC",
+            satellite_id,
+            start_datetime,
+            end_datetime,
+        )
+        return rows
+
+
+async def retrieve_power_system_states(
+    satellite_id: UUID, start_datetime: datetime, end_datetime: datetime
+) -> list[Record]:
+    """Retrieve all power system states for a satellite within a given time range."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT recorded_at, battery_level_pct, solar_input_w, power_draw_w "
+            "FROM power_systems "
+            "WHERE satellite_id = $1 AND recorded_at >= $2 AND recorded_at < $3 "
+            "ORDER BY recorded_at ASC",
+            satellite_id,
+            start_datetime,
+            end_datetime,
+        )
+        return rows
+
+
+async def retrieve_thermal_states(
+    satellite_id: UUID, start_datetime: datetime, end_datetime: datetime
+) -> list[Record]:
+    """Retrieve all thermal states for a satellite within a given time range."""
+    pool = get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT recorded_at, temp_battery_c, temp_solar_panels_c, temp_electronics_c, temp_exterior_c "
+            "FROM thermals "
+            "WHERE satellite_id = $1 AND recorded_at >= $2 AND recorded_at < $3 "
+            "ORDER BY recorded_at ASC",
+            satellite_id,
+            start_datetime,
+            end_datetime,
+        )
+        return rows
 
 
 async def insert_orbital_state(
